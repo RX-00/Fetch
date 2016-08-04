@@ -93,8 +93,14 @@ void slow_servo(int servoPosition, int servo_number_ID){
           delay(10);
           break;
         case 4:
-          claw.write(movement);
-          delay(10);
+          if(movement < 90){
+            claw.write(90);
+            delay(5);
+          }
+          else if(movement > 90){
+            claw.write(movement);
+            delay(10);
+          }
           break;
       }
   }
