@@ -2,6 +2,8 @@
 //The camera locates where the target object to fetch is and its coordinates
 //The coordinates are then published to a topic to be used by other nodes
 
+//Author: Roy Xing
+
 //ROS stuff
 #include "ros/ros.h"
 #include "std_msgs/String.h"
@@ -50,8 +52,8 @@ int LowV = 110;
 int HighV = 255;
 
 //Global Variables for the default values of the previous cooridnate of the target object
-int lastX = -1;
-int lastY = -1;
+int LastX = -1;
+int LastY = -1;
 
 
 //initiate your functions
@@ -73,22 +75,23 @@ float distance_formula(float x1, float x2, float y1, float y2){
 void createTrackbars(){
   //create window
   namedWindow("Control Colors", CV_WINDOW_AUTOSIZE);
-
+  //I just want to forget
   //Create the trackbars
-  cvCreateTrackbar("LowH", "Control Red", &LowH, 179);
-  cvCreateTrackbar("HighH", "Control Red", &HighH, 179);
+  cvCreateTrackbar("LowH", "Control Colors", &LowH, 179);
+  cvCreateTrackbar("HighH", "Control Colors", &HighH, 179);
 
-  cvCreateTrackbar("LowS", "Control Red", &LowS, 255);
-  cvCreateTrackbar("HighS", "Control Red", &HighS, 255);
+  cvCreateTrackbar("LowS", "Control Colors", &LowS, 255);
+  cvCreateTrackbar("HighS", "Control Colors", &HighS, 255);
 
-  cvCreateTrackbar("LowV", "Control Red", &LowV, 255);
-  cvCreateTrackbar("HighV", "Control Red", &HighV, 255);
+  cvCreateTrackbar("LowV", "Control Colors", &LowV, 255);
+  cvCreateTrackbar("HighV", "Control Colors", &HighV, 255);
 }
 //<<<trackbars for filtering based on color
 
 
 //>>>image processing from the camera
 int find_target_object(){
+
   //capture video from the camera
   VideoCapture cap(0); //the number here decides which camera to use, 0 for laptop's webcam, 1+ for usb
 
@@ -144,9 +147,9 @@ int find_target_object(){
       int posX = dM10 / dArea;
       int posY = dM01 / dArea;
 
-      if (LastX >= 0 && LastY >= 0 && posXred >= 0 && posYred >= 0){
+      if (LastX >= 0 && LastY >= 0){
         //Draw a red line from the previous point to the current point
-        line(imgLines, Point(posX, posY), Point(LastX, LastY), Scalar(0,0,255), 2);
+        line(imgBlack, Point(posX, posY), Point(LastX, LastY), Scalar(0,0,255), 2);
 
         //return the previous frame coordinates of the target object
         //return LastX, LastY;
@@ -166,7 +169,7 @@ int find_target_object(){
     cv::imshow("Thresholded Image", imgThresholded); //show the thresholded image
     cv::imshow("HSV Image", imgHSV); //show the HSV of the image
     cv::imshow("Original", original); //show the original image
-    cv::imshow("Tracking", original+imgLines); //show the original and the tracking
+    cv::imshow("Tracking", original + imgBlack); //show the original and the tracking
 
     //print the coordinates
     cout<<"X Coordinate: "<<LastX<<", Y Coordinate: "<<LastY<<endl;
@@ -181,7 +184,7 @@ int find_target_object(){
 
 
 //>>>ROS code
-void ROS_Publisher(){
+void ROS_Publisher(int argc, char **argv){
   //initiate a node called "Arm_Camera_Node"
   ros::init(argc, argv, "Arm_Camera_Node");
 
@@ -219,7 +222,7 @@ void ROS_Publisher(){
     ros::spinOnce();
 
     loop_rate.sleep();
-    ++count
+    ++count;
   }
 
 
@@ -234,7 +237,39 @@ int main(int argc, char **argv){//passing argc and argv is needed here to perfor
   find_target_object();
 
 
-  ROS_Publisher();
+  
+  //ROS_Publisher();
+  //initiate a node called "Arm_Camera_Node"
+  ros::init(argc, argv, "Arm_Camera_Node");
+
+  //this is the main access point to communications with the ROS system, this first one fully initializes this node
+  ros::NodeHandle n;
+  ros::Publisher chatter_pub = n.advertise<std_msgs::String>("target_object_coordinates", 1000);
+
+  ros::Rate loop_rate(10);
+
+  //this is used to count how msgs were sent
+  int count = 0;
+
+  while (ros::ok()){
+    //this is a message object, stuff it with data, then publish it
+    std_msgs::String msg;
+
+    std::stringstream ss;
+    ss<<"hello world"<<count;
+    msg.data = ss.str();
+
+    ROS_INFO("%s", msg.data.c_str());
+
+    //the publish() function is how you send messages, the parameter is the message object
+    //the type of this object must agree with the type given as a template paramter to the advertise<>() call, as was done in the constructor above
+    chatter_pub.publish(msg);
+
+    ros::spinOnce();
+
+    loop_rate.sleep();
+    ++count;
+  }
 
 
 }

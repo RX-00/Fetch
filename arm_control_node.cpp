@@ -1,5 +1,7 @@
 //This Node is for controlling the arm of fetch depending on the information from the Target Object Coordinates Topic and the Ultrasonic Distance Topic
 
+//Author: Roy Xing
+
 //ROS stuff
 #include "ros/ros.h"
 #include "std_msgs/String.h"
@@ -39,7 +41,7 @@ int calculate_movement(){
 
 //>>>function to send the calculated movement to the arduino that controls the arm's servos
 void send_movement(int arm_position_data){
-  int data[] = {arm_position_data} //data that we want to send
+  int data[] = {arm_position_data}; //data that we want to send
   FILE *file;
   file = fopen("/dev/ttyACM0", "w"); //opens the serial port stream to the arduino Mega
   if(file == NULL){
@@ -71,7 +73,7 @@ void distanceCallBack(const std_msgs::String::ConstPtr& msg){
 //<<<ROS callback function for ultrasonic distance
 
 //>>>ROS subscriber code
-void ROS_Subscriber(){
+void ROS_Subscriber(int argc, char **argv){
   //initiate a node called "Arm_Control_Node"
   ros::init(argc, argv, "Arm_Control_Node");
 
@@ -85,8 +87,8 @@ void ROS_Subscriber(){
   - When all copies of the Subscribed obbject go out of scope, this callback will automatically be unsubscribed form this topic
   -the second parameter to the subscribe() function is the size of the message queue
   */
-  ros::subscriber sub = n.subscribe("target_object_coordinates", 1000, coordinatesCallBack);
-  ros::subscriber sub = n.subscribe("", 1000, distanceCallBack);
+  ros::Subscriber sub_coordinates = n.subscribe("target_object_coordinates", 1000, coordinatesCallBack);
+  ros::Subscriber sub_distance = n.subscribe("", 1000, distanceCallBack);
 
   //this will enter a loop, pumping callbacks
   ros::spin(); //only exits with Ctrl-C or if the node is shutdown by the master
