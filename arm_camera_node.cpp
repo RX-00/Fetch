@@ -7,6 +7,8 @@
 //ROS stuff
 #include "ros/ros.h"
 #include "std_msgs/String.h"
+//#include "std_msgs/Float64.h"
+#include "std_msgs/Int32.h"
 
 //C++ stuff
 #include <iostream>
@@ -56,9 +58,11 @@ int LastX = -1;
 int LastY = -1;
 
 
+
 //initiate your functions
 float distance_formula();
-int find_target_object();
+//int find_target_object();
+void find_target_object();
 void createTrackbars();
 void ROS_Publisher();
 
@@ -90,7 +94,15 @@ void createTrackbars(){
 
 
 //>>>image processing from the camera
-int find_target_object(){
+void find_target_object(int argc, char **argv){
+
+  //>>>ROS initiation, which should be properly called on the first line of the "main program"
+  ros::init(argc, argv, "Arm_Camera_Node");
+  ros::NodeHandle n;
+
+  ros::Publisher chatter_pub = n.advertise<std_msgs::Int32>("target_object_coordinates", 1000);
+  ros::Rate loop_rate(10);
+  //<<<ROS initiation
 
   //capture video from the camera
   VideoCapture cap(0); //the number here decides which camera to use, 0 for laptop's webcam, 1+ for usb
@@ -172,7 +184,31 @@ int find_target_object(){
     cv::imshow("Tracking", original + imgBlack); //show the original and the tracking
 
     //print the coordinates
-    cout<<"X Coordinate: "<<LastX<<", Y Coordinate: "<<LastY<<endl;
+    //cout<<"X Coordinate: "<<LastX<<", Y Coordinate: "<<LastY<<endl;
+
+    //return LastX;
+
+    //>>>Publish the x coordinate to ros
+    int i = 0;
+    while(i < 1){
+
+      std_msgs::Int32 x_coordinate;
+
+      x_coordinate.data = LastX;
+
+      //the publish() function is how you send messages, the parameter is the message object
+      //the type of this object must agree with the type given as a template paramter to the advertise<>() call, as was done in the constructor above
+      chatter_pub.publish(x_coordinate);
+
+      //anounce that the array was published
+      ROS_INFO("Camera Coordinates published: %d", x_coordinate.data);
+      ros::spinOnce();
+
+      loop_rate.sleep();
+      i++;
+    }
+    //<<<Publish the x coordinate to ros
+
 
     if (waitKey(30) == 27){ //wait for 'esc' key press for 30ms. If 'esc' key is pressed, break loop
       cout<<"esc key has been pressed by user, exiting and terminated program"<< endl;
@@ -233,44 +269,12 @@ void ROS_Publisher(int argc, char **argv){
 //>>> int main
 int main(int argc, char **argv){//passing argc and argv is needed here to perform any ROS arguments and name remapping given at the command line
 
-  //NOTE: probably want this guy to execute inside the ROS function to publish the coordinates
-  find_target_object();
-
-
-  
   //ROS_Publisher();
   //initiate a node called "Arm_Camera_Node"
-  ros::init(argc, argv, "Arm_Camera_Node");
-
+  //ros::init(argc, argv, "Arm_Camera_Node");
   //this is the main access point to communications with the ROS system, this first one fully initializes this node
-  ros::NodeHandle n;
-  ros::Publisher chatter_pub = n.advertise<std_msgs::String>("target_object_coordinates", 1000);
 
-  ros::Rate loop_rate(10);
-
-  //this is used to count how msgs were sent
-  int count = 0;
-
-  while (ros::ok()){
-    //this is a message object, stuff it with data, then publish it
-    std_msgs::String msg;
-
-    std::stringstream ss;
-    ss<<"hello world"<<count;
-    msg.data = ss.str();
-
-    ROS_INFO("%s", msg.data.c_str());
-
-    //the publish() function is how you send messages, the parameter is the message object
-    //the type of this object must agree with the type given as a template paramter to the advertise<>() call, as was done in the constructor above
-    chatter_pub.publish(msg);
-
-    ros::spinOnce();
-
-    loop_rate.sleep();
-    ++count;
-  }
-
+  find_target_object(argc, argv);
 
 }
 //<<< int main
