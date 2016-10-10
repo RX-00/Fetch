@@ -189,24 +189,19 @@ void find_target_object(int argc, char **argv){
     //return LastX;
 
     //>>>Publish the x coordinate to ros
-    int i = 0;
-    while(i < 1){
+    std_msgs::Int32 x_coordinate;
 
-      std_msgs::Int32 x_coordinate;
+    x_coordinate.data = LastX;
 
-      x_coordinate.data = LastX;
+    //the publish() function is how you send messages, the parameter is the message object
+    //the type of this object must agree with the type given as a template paramter to the advertise<>() call, as was done in the constructor above
+    chatter_pub.publish(x_coordinate);
 
-      //the publish() function is how you send messages, the parameter is the message object
-      //the type of this object must agree with the type given as a template paramter to the advertise<>() call, as was done in the constructor above
-      chatter_pub.publish(x_coordinate);
+    //anounce that the array was published
+    ROS_INFO("Camera Coordinates published: %d", x_coordinate.data);
+    ros::spinOnce();
 
-      //anounce that the array was published
-      ROS_INFO("Camera Coordinates published: %d", x_coordinate.data);
-      ros::spinOnce();
-
-      loop_rate.sleep();
-      i++;
-    }
+    loop_rate.sleep();
     //<<<Publish the x coordinate to ros
 
 
@@ -276,5 +271,6 @@ int main(int argc, char **argv){//passing argc and argv is needed here to perfor
 
   find_target_object(argc, argv);
 
+  return 0;
 }
 //<<< int main

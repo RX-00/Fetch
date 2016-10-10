@@ -5,6 +5,7 @@
 //ROS stuff
 #include "ros/ros.h"
 #include "std_msgs/String.h"
+#include "std_msgs/Int32.h"
 
 //C++ stuff
 #include <iostream>
@@ -29,13 +30,18 @@ void ROS_Subscriber();
 void coordinatesCallBack();
 void distanceCallBack();
 void ROS_Publisher();
+void arm_movement();
 
 using namespace std;
 
+//Global Variable
+int servo_position;
+
 
 //>>>function to calculate the movement of the arm's servos depending on the coordinates and the ultrasonic distance
-int calculate_movement(){
-
+int calculate_movement(int x_coordinate){
+  int arm_position_data = x_coordinate;
+  return arm_position_data;
 }
 //<<<function to calculate the movement of the arm's servos depending on the coordinates and the ultrasonic distance
 
@@ -50,7 +56,7 @@ void send_movement(int arm_position_data){
   }
 
   int i = 0;
-  for(; i<4; i++){
+  for(; i<1; i++){
     fprintf(file, "%d", data[i]); //write to the arduino
     fprintf(file, "%c", ','); //separate the digits
     cout<<"data "<<i<<" sent: "<<data[i]<<endl;
@@ -61,18 +67,45 @@ void send_movement(int arm_position_data){
 //<<<function to send the calculated movement to the arduino that controls the arm's servos
 
 //>>>ROS callback function for the target object coordinates
-void coordinatesCallBack(const std_msgs::String::ConstPtr& msg){
-  ROS_INFO("I heard coordinates: [%s]", msg->data.c_str());
+void coordinatesCallBack(const std_msgs::Int32::ConstPtr& x_coordinate){
+  //ROS_INFO("I heard coordinates: [%d]", x_coordinate->data.c_str());
+  ROS_INFO("I heard coordinates: %d", x_coordinate->data);
+
+  //cout<<x_coordinate->data<<endl;
+
+  //algorithm for tracking the target object
+  //NOTE: Keep the target object in sight (center to the arm), until fetch is facing the target object and the arm base servo is around 90 degrees
+
+  if(x_coordinate->data > 100 && x_coordinate->data < 200){ //if the target object is in front of fetch's arm camera
+    servo_position = calculate_movement(x_coordinate->data);
+    send_movement(servo_position);
+  }
+  else if(x_coordinate->data > 200){ //if the target object is to the right of fetch's arm camera
+    servo_position = calculate_movement(x_coordinate->data);
+    send_movement(servo_position);
+  }
+  else if(x_coordinate->data < 100){ //if the target object is to the left of fetch's arm camera
+    servo_position = calculate_movement(x_coordinate->data);
+    send_movement(servo_position);
+  }
+
 }
 //<<<ROS callback function for the target object coordinates
 
 //>>>ROS callback function for ultrasonic distance
-void distanceCallBack(const std_msgs::String::ConstPtr& msg){
-  ROS_INFO("I heard distance: [%s]", msg->data.c_str());
+void distanceCallBack(const std_msgs::Int32::ConstPtr& distance){
+  //ROS_INFO("I heard distance: [%d]", distance->data.c_str());
+  ROS_INFO("I heard distance: %d", distance->data);
+
+  //algorithm for when to pick up the target object
+  if((servo_position < 95 && servo_position > 85) && distance->data < 100){
+    int go_grab_object = -1;
+    send_movement(go_grab_object);
+  }
 }
 //<<<ROS callback function for ultrasonic distance
 
-//>>>ROS subscriber code
+//>>>ROS subscriber code, NOTE: the beginning of this should be in the beginning of the "main program"
 void ROS_Subscriber(int argc, char **argv){
   //initiate a node called "Arm_Control_Node"
   ros::init(argc, argv, "Arm_Control_Node");
@@ -88,12 +121,10 @@ void ROS_Subscriber(int argc, char **argv){
   -the second parameter to the subscribe() function is the size of the message queue
   */
   ros::Subscriber sub_coordinates = n.subscribe("target_object_coordinates", 1000, coordinatesCallBack);
-  ros::Subscriber sub_distance = n.subscribe("", 1000, distanceCallBack);
+  ros::Subscriber sub_distance = n.subscribe("target_object_distance", 1000, distanceCallBack);
 
   //this will enter a loop, pumping callbacks
   ros::spin(); //only exits with Ctrl-C or if the node is shutdown by the master
-
-
 }
 //<<<ROS subscriber code
 
@@ -101,8 +132,26 @@ void ROS_Subscriber(int argc, char **argv){
 //TODO: figure out if I really need this -Roy Xing September 3, 2016
 //<<< ROS publisher code
 
+
+
+//>>> Main Program
+void arm_movement(int argc, char **argv){
+  //initiate a node called "Arm_Control_Node"
+  ros::init(argc, argv, "Arm_Control_Node");
+  //this is the main access point to communications with the ROS system, this first one fully initializes this node
+  ros::NodeHandle n;
+
+  //subscribers
+  ros::Subscriber sub_coordinates = n.subscribe("target_object_coordinates", 1000, coordinatesCallBack);
+  ros::Subscriber sub_distance = n.subscribe("", 100, distanceCallBack);
+  ros::spin();
+}
+//<<< Main Program
+
+
 //>>> int main
 int main(int argc, char **argv){
-
+  arm_movement(argc, argv);
+  return 0;
 }
 //<<< int main

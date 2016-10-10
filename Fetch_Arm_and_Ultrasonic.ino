@@ -27,6 +27,10 @@ const int servoShoulder = 2;
 const int servoElbow = 3;
 const int servoClaw = 4;
 
+//variable for serial input from the arm_control_node
+int buff[5];
+int j = -1;
+
 //initiate the functions before hand
 int ultra_sonic_sensor();
 void control_arm();
@@ -131,6 +135,17 @@ void control_arm(){
   }
 }
 
+//since arduino receives the info as characters this is to change the characters back into numbers
+int calc()
+{
+    int num=0,x=0;
+ 
+    for(x;x<=j;x++)
+          num=num+(buff[x]-48)*pow(10,j-x);
+           
+    return num;
+}
+
 
 void setup(){
   //start up serial connection
@@ -149,7 +164,33 @@ void setup(){
 }
 
 void loop(){
-  control_arm();
+  int num, input;
+  if(Serial.available()){
+    //If the input is a ',' then go onto the next to calculate the next input from serial
+    input = Serial.read();
+    if(input==','){
+      num = calc();
+      j = -1;
+      Serial.println(num);
+      if(num >= 0 && num <= 14){ //if num is more to the left, meaning the target object is to the left of Fetch's Arm's Camera
+        base.write(num * 5);
+        delay(500);
+      }
+      else if(num > 14 && num < 22){ //if num is more to the middle, meaning the target object is to the middle of Fetch's Arm's Camera
+        base.write(num * 5);
+        delay(500);
+        control_arm();
+      }
+      else if(num >= 22 && num <= 36){ //if num is more to the right, meaning the target object is to the right of Fetch's Arm's Camera
+        base.write(num * 5);
+        delay(500);
+      }
+    }
+    else{ //move onto the next input from serial
+     //j++;
+     //buff[j] = input;   
+    }
+  }
 }
 
 
