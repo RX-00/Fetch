@@ -9,6 +9,9 @@
 #include "std_msgs/String.h"
 //#include "std_msgs/Float64.h"
 #include "std_msgs/Int32.h"
+#include "std_msgs/Int32MultiArray.h"
+#include "std_msgs/MultiArrayLayout.h"
+#include "std_msgs/MultiArrayDimension.h"
 
 //C++ stuff
 #include <iostream>
@@ -44,14 +47,14 @@ using namespace ros;
 
 
 //Global Variables for the color detection initiation defaults
-int LowH = 0;
-int HighH = 179;
+int LowH = 42;
+int HighH = 111;
 
-int LowS = 45;
+int LowS = 57;
 int HighS = 255;
 
-int LowV = 110;
-int HighV = 255;
+int LowV = 121;
+int HighV = 205;
 
 //Global Variables for the default values of the previous cooridnate of the target object
 int LastX = -1;
@@ -100,12 +103,13 @@ void find_target_object(int argc, char **argv){
   ros::init(argc, argv, "Arm_Camera_Node");
   ros::NodeHandle n;
 
-  ros::Publisher chatter_pub = n.advertise<std_msgs::Int32>("target_object_coordinates", 1000);
+  //ros::Publisher chatter_pub = n.advertise<std_msgs::Int32>("target_object_coordinates", 1000);
+  ros::Publisher chatter_pub = n.advertise<std_msgs::Int32MultiArray>("target_object_coordinates", 1000);
   ros::Rate loop_rate(10);
   //<<<ROS initiation
 
   //capture video from the camera
-  VideoCapture cap(0); //the number here decides which camera to use, 0 for laptop's webcam, 1+ for usb
+  VideoCapture cap(1); //the number here decides which camera to use, 0 for laptop's webcam, 1+ for usb
 
   //if the capture fails, exit the program
   if(!cap.isOpened()){
@@ -189,16 +193,26 @@ void find_target_object(int argc, char **argv){
     //return LastX;
 
     //>>>Publish the x coordinate to ros
-    std_msgs::Int32 x_coordinate;
+    std_msgs::Int32MultiArray coordinates;
+    //cout<<"Error here? 1"<<endl;
+    //clear array
+    //coordinates.data.clear();
 
-    x_coordinate.data = LastX;
+    //for loop to push data into the array
+    for(int i = 0; i < 2; i++){
+      coordinates.data.push_back(rand()%255);
+      coordinates.data[0] = LastX;
+      coordinates.data[1] = LastY;
+    }
+    //x_coordinate.data = LastX;
 
     //the publish() function is how you send messages, the parameter is the message object
     //the type of this object must agree with the type given as a template paramter to the advertise<>() call, as was done in the constructor above
-    chatter_pub.publish(x_coordinate);
+    chatter_pub.publish(coordinates);
 
     //anounce that the array was published
-    ROS_INFO("Camera Coordinates published: %d", x_coordinate.data);
+    ROS_INFO("Camera Coordinates published: x coordinate: %d", coordinates.data[0]);
+    ROS_INFO("                              y coordinate: %d", coordinates.data[1]);
     ros::spinOnce();
 
     loop_rate.sleep();

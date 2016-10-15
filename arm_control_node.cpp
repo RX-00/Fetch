@@ -6,6 +6,9 @@
 #include "ros/ros.h"
 #include "std_msgs/String.h"
 #include "std_msgs/Int32.h"
+#include "std_msgs/Int32MultiArray.h"
+#include "std_msgs/MultiArrayLayout.h"
+#include "std_msgs/MultiArrayDimension.h"
 
 //C++ stuff
 #include <iostream>
@@ -27,7 +30,7 @@
 void send_movement();
 int calculate_movement();
 void ROS_Subscriber();
-void coordinatesCallBack();
+void coordinatesCallBack(const std_msgs::Int32MultiArray::ConstPtr& coordinates);
 void distanceCallBack();
 void ROS_Publisher();
 void arm_movement();
@@ -67,25 +70,29 @@ void send_movement(int arm_position_data){
 //<<<function to send the calculated movement to the arduino that controls the arm's servos
 
 //>>>ROS callback function for the target object coordinates
-void coordinatesCallBack(const std_msgs::Int32::ConstPtr& x_coordinate){
+void coordinatesCallBack(const std_msgs::Int32MultiArray::ConstPtr& coordinates){
   //ROS_INFO("I heard coordinates: [%d]", x_coordinate->data.c_str());
-  ROS_INFO("I heard coordinates: %d", x_coordinate->data);
+  ROS_INFO("I heard coordinates: x coordinate: %d", coordinates->data[0]);
+  ROS_INFO("                     y coordinate: %d", coordinates->data[1]);
 
   //cout<<x_coordinate->data<<endl;
 
   //algorithm for tracking the target object
   //NOTE: Keep the target object in sight (center to the arm), until fetch is facing the target object and the arm base servo is around 90 degrees
 
-  if(x_coordinate->data > 100 && x_coordinate->data < 200){ //if the target object is in front of fetch's arm camera
-    servo_position = calculate_movement(x_coordinate->data);
+  //Y Coordinate based movement of the arm
+
+  //X Coordinate based movement of the arm
+  if(coordinates->data[0] > 100 && coordinates->data[0] < 200){ //if the target object is in front of fetch's arm camera
+    servo_position = calculate_movement(coordinates->data[0]);
     send_movement(servo_position);
   }
-  else if(x_coordinate->data > 200){ //if the target object is to the right of fetch's arm camera
-    servo_position = calculate_movement(x_coordinate->data);
+  else if(coordinates->data[0] > 200){ //if the target object is to the right of fetch's arm camera
+    servo_position = calculate_movement(coordinates->data[0]);
     send_movement(servo_position);
   }
-  else if(x_coordinate->data < 100){ //if the target object is to the left of fetch's arm camera
-    servo_position = calculate_movement(x_coordinate->data);
+  else if(coordinates->data[0] < 100){ //if the target object is to the left of fetch's arm camera
+    servo_position = calculate_movement(coordinates->data[0]);
     send_movement(servo_position);
   }
 
