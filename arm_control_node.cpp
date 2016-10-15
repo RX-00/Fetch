@@ -27,13 +27,14 @@
 #include <opencv2/video.hpp>
 
 //initiate the functions
-void send_movement();
-int calculate_movement();
+void send_movement(int arm_position_data);
+int calculate_movement_x(int x_coordinate);
+int calculate_movement_y(int y_coordinate);
 void ROS_Subscriber();
 void coordinatesCallBack(const std_msgs::Int32MultiArray::ConstPtr& coordinates);
-void distanceCallBack();
+void distanceCallBack(const std_msgs::Int32::ConstPtr& distance);
 void ROS_Publisher();
-void arm_movement();
+void arm_movement(int argc, char **argv);
 
 using namespace std;
 
@@ -41,12 +42,19 @@ using namespace std;
 int servo_position;
 
 
-//>>>function to calculate the movement of the arm's servos depending on the coordinates and the ultrasonic distance
-int calculate_movement(int x_coordinate){
+//>>>function to calculate the movement of the arm's servos depending on the x coordinate and the ultrasonic distance
+int calculate_movement_x(int x_coordinate){
   int arm_position_data = x_coordinate;
   return arm_position_data;
 }
-//<<<function to calculate the movement of the arm's servos depending on the coordinates and the ultrasonic distance
+//<<<function to calculate the movement of the arm's servos depending on the x coordinate and the ultrasonic distance
+
+//>>>function to calculate the movement of the arm's servos depending on the y coordinate and the ultrasonic distance
+int calculate_movement_y(int y_coordinate){
+  int arm_position_data = y_coordinate;
+  return arm_position_data;
+}
+//<<<function to calculate the movement of the arm's servos depending on the y coordinate and the ultrasonic distance
 
 //>>>function to send the calculated movement to the arduino that controls the arm's servos
 void send_movement(int arm_position_data){
@@ -81,18 +89,25 @@ void coordinatesCallBack(const std_msgs::Int32MultiArray::ConstPtr& coordinates)
   //NOTE: Keep the target object in sight (center to the arm), until fetch is facing the target object and the arm base servo is around 90 degrees
 
   //Y Coordinate based movement of the arm
+  //NOTE: 250 is the middle of the y axis
+  if(coordinates->data[1] > 250){
+    servo_position = calculate_movement_y(coordinates->data[0]);
+    send_movement(servo_position); //send that it's ok to grab
+  }
+
 
   //X Coordinate based movement of the arm
-  if(coordinates->data[0] > 100 && coordinates->data[0] < 200){ //if the target object is in front of fetch's arm camera
-    servo_position = calculate_movement(coordinates->data[0]);
+  //NOTE: 350 is the middle of the x axis
+  if(coordinates->data[0] > 250 && coordinates->data[0] < 450){ //if the target object is in front of fetch's arm camera
+    servo_position = calculate_movement_x(coordinates->data[0]);
     send_movement(servo_position);
   }
-  else if(coordinates->data[0] > 200){ //if the target object is to the right of fetch's arm camera
-    servo_position = calculate_movement(coordinates->data[0]);
+  else if(coordinates->data[0] > 450){ //if the target object is to the right of fetch's arm camera
+    servo_position = calculate_movement_x(coordinates->data[0]);
     send_movement(servo_position);
   }
-  else if(coordinates->data[0] < 100){ //if the target object is to the left of fetch's arm camera
-    servo_position = calculate_movement(coordinates->data[0]);
+  else if(coordinates->data[0] < 250){ //if the target object is to the left of fetch's arm camera
+    servo_position = calculate_movement_x(coordinates->data[0]);
     send_movement(servo_position);
   }
 
