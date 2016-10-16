@@ -48,14 +48,14 @@ using namespace ros;
 
 
 //Global Variables for the color detection initiation defaults
-int LowH = 42;
-int HighH = 111;
+int LowH = 40;
+int HighH = 80;
 
-int LowS = 57;
-int HighS = 255;
+int LowS = 0;
+int HighS = 90;
 
-int LowV = 121;
-int HighV = 205;
+int LowV = 100;
+int HighV = 255;
 
 //Global Variables for the default values of the previous cooridnate of the target object
 int LastX = -1;
