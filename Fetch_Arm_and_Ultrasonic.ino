@@ -79,8 +79,8 @@ int ultra_sonic_sensor(){
 void default_positions(){
   claw.write(90);
   base.write(90);
-  elbow.write(90);
-  shoulder.write(90);
+  elbow.write(60);
+  shoulder.write(110);
   delay(50);
 }
 
@@ -187,6 +187,7 @@ void loop(){
       buff[j] = input;
     }
   }
+  
 
   //set which servo you want to change
   if(num == 98){

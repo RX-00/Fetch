@@ -123,7 +123,7 @@ void coordinatesCallBack(const std_msgs::Int32MultiArray::ConstPtr& coordinates)
   //Y Coordinate based movement of the arm
   //NOTE: 250 is the middle of the y axis, min of 10, max of 460 (for the program)
 
-  if(coordinates->data[1] > 450){
+  if(coordinates->data[1] > 400){
     cout<<"target object is close"<<endl;
     //servo_position = calculate_movement_y(coordinates->data[0]);
     //send_movement(ARM, servo_position); //send that it's ok to grab
