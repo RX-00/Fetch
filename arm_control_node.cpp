@@ -46,13 +46,24 @@ void arm_movement(int argc, char **argv);
 
 using namespace std;
 
-//Global Variable
-int servo_position;
+//global variables
+int x_coordinate;
+int y_coordinate;
+int ultra_distance;
 
 
 //>>>function to calculate the movement of the arm's servos depending on the x coordinate and the ultrasonic distance
 int calculate_movement_x(int x_coordinate){
-  int arm_position_data = x_coordinate;
+  int arm_position_data;
+  if(x_coordinate > 0 && x_coordinate < 250){ //if the target object is to the left of fetch's arm camera
+    arm_position_data = 135;
+  }
+  else if(x_coordinate > 450){ //if the target object is in front of fetch's arm camera
+    arm_position_data = 45;
+  }
+  else if(x_coordinate < 450 && x_coordinate > 250){ //if the target object is to the right of fetch's arm camera
+    arm_position_data = 90;
+  }
   //int arm_position_data = 45;
   return arm_position_data;
 }
@@ -86,18 +97,23 @@ void send_movement(int which_servo, int arm_position_data){
     else{
       cout<<"data arm_position_data "<<i<<" sent: "<<data[1]<<endl;
     }
-    //usleep(1);
+    //usleep(1000);
     sleep(1); //sleep so that the data can properly be sent without hold up
   }
   fclose(file);
+  sleep(2); //sleep so the servo has time to move
 }
 //<<<function to send the calculated movement to the arduino that controls the arm's servos
 
 //>>>ROS callback function for the target object coordinates
 void coordinatesCallBack(const std_msgs::Int32MultiArray::ConstPtr& coordinates){
+  int servo_position;
   //ROS_INFO("I heard coordinates: [%d]", x_coordinate->data.c_str());
   ROS_INFO("I heard coordinates: x coordinate: %d", coordinates->data[0]);
   ROS_INFO("                     y coordinate: %d", coordinates->data[1]);
+
+  x_coordinate = coordinates->data[0];
+  y_coordinate = coordinates->data[1];
 
   //cout<<x_coordinate->data<<endl;
 
@@ -106,26 +122,19 @@ void coordinatesCallBack(const std_msgs::Int32MultiArray::ConstPtr& coordinates)
 
   //Y Coordinate based movement of the arm
   //NOTE: 250 is the middle of the y axis, min of 10, max of 460 (for the program)
+  /*
   if(coordinates->data[1] > 250){
     servo_position = calculate_movement_y(coordinates->data[0]);
     send_movement(ARM, servo_position); //send that it's ok to grab
   }
+  */
 
 
   //X Coordinate based movement of the arm
   //NOTE: 350 is the middle of the x axis, min of 10, max of 600 (for the program)
-  if(coordinates->data[0] > 250 && coordinates->data[0] < 450){ //if the target object is in front of fetch's arm camera
-    servo_position = calculate_movement_x(coordinates->data[0]);
-    send_movement(BASE, servo_position);
-  }
-  else if(coordinates->data[0] > 450){ //if the target object is to the right of fetch's arm camera
-    servo_position = calculate_movement_x(coordinates->data[0]);
-    send_movement(BASE, servo_position);
-  }
-  else if(coordinates->data[0] < 250){ //if the target object is to the left of fetch's arm camera
-    servo_position = calculate_movement_x(coordinates->data[0]);
-    send_movement(BASE, servo_position);
-  }
+
+  //servo_position = calculate_movement_x(coordinates->data[0]);
+  //send_movement(BASE, servo_position);
 
 }
 //<<<ROS callback function for the target object coordinates
@@ -135,8 +144,10 @@ void distanceCallBack(const std_msgs::Int32::ConstPtr& distance){
   //ROS_INFO("I heard distance: [%d]", distance->data.c_str());
   ROS_INFO("I heard distance: %d", distance->data);
 
+  ultra_distance = distance->data;
+
   //algorithm for when to pick up the target object
-  if((servo_position < 95 && servo_position > 85) && distance->data < 100){
+  if(ultra_distance < 100 && y_coordinate > 250){
     int go_grab_object = -1;
     send_movement(ALL, go_grab_object);
   }
@@ -158,8 +169,8 @@ void ROS_Subscriber(int argc, char **argv){
   - When all copies of the Subscribed obbject go out of scope, this callback will automatically be unsubscribed form this topic
   -the second parameter to the subscribe() function is the size of the message queue
   */
-  ros::Subscriber sub_coordinates = n.subscribe("target_object_coordinates", 1000, coordinatesCallBack);
-  ros::Subscriber sub_distance = n.subscribe("target_object_distance", 1000, distanceCallBack);
+  ros::Subscriber sub_coordinates = n.subscribe("target_object_coordinates", 10, coordinatesCallBack);
+  ros::Subscriber sub_distance = n.subscribe("target_object_distance", 10, distanceCallBack);
 
   //this will enter a loop, pumping callbacks
   ros::spin(); //only exits with Ctrl-C or if the node is shutdown by the master
@@ -190,9 +201,16 @@ void arm_movement(int argc, char **argv){
 //>>> int main
 int main(int argc, char **argv){
   //arm_movement(argc, argv);
-  //for(int i = 0; i < 90; i=i+10){
-  send_movement(BASE, 45);
-    //}
+
+  /*
+  while(true){
+    send_movement(BASE, 135);
+    sleep(5);
+    send_movement(BASE, 45);
+    sleep(5);
+  }
+  */
+
   return 0;
 }
 //<<< int main

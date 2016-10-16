@@ -17,6 +17,7 @@
 #include <iostream>
 #include <sstream>
 #include <stdio.h>
+#include <unistd.h>
 #include <vector>
 #include <algorithm>
 #include <math.h>
@@ -205,6 +206,9 @@ void find_target_object(int argc, char **argv){
       coordinates.data[1] = LastY;
     }
     //x_coordinate.data = LastX;
+
+    //usleep(1000); //sleep to sync up with the arm_control_node
+    //sleep(1);
 
     //the publish() function is how you send messages, the parameter is the message object
     //the type of this object must agree with the type given as a template paramter to the advertise<>() call, as was done in the constructor above

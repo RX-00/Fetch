@@ -34,7 +34,7 @@ const int servoElbow = 3;
 const int servoClaw = 4;
 
 //global variables for serial input from the arm_control_node
-int num;
+int num = 1000;
 int input;
 int which_servo;
 int buff[5];
@@ -170,39 +170,9 @@ void setup(){
   //pin modes of the ultrasonic pins
   pinMode(trigPin, OUTPUT);
   pinMode(echoPin, INPUT);
-}
 
-/*
-void loop(){
-  int num, input;
-  if(Serial.available()){
-    //If the input is a ',' then go onto the next to calculate the next input from serial
-    input = Serial.read();
-    if(input==','){
-      num = calc();
-      j = -1;
-      Serial.println(num);
-      if(num >= 0 && num <= 14){ //if num is more to the left, meaning the target object is to the left of Fetch's Arm's Camera
-        base.write(num * 5);
-        delay(500);
-      }
-      else if(num > 14 && num < 22){ //if num is more to the middle, meaning the target object is to the middle of Fetch's Arm's Camera
-        base.write(num * 5);
-        delay(500);
-        control_arm();
-      }
-      else if(num >= 22 && num <= 36){ //if num is more to the right, meaning the target object is to the right of Fetch's Arm's Camera
-        base.write(num * 5);
-        delay(500);
-      }
-    }
-    else{ //move onto the next input from serial
-     //j++;
-     //buff[j] = input;   
-    }
-  }
+  default_positions();
 }
-*/
 
 void loop(){
   if(Serial.available()){
@@ -239,28 +209,30 @@ void loop(){
   if(which_servo == BASE){
     base.write(num);
     //slow_servo(num, BASE);
-    delay(1000);
+    delay(50);
   }
-  if(which_servo == SHOULDER){
+  else if(which_servo == SHOULDER){
     shoulder.write(num);
     //slow_servo(num, BASE);
-    delay(1000);
+    delay(50);
   }
-  if(which_servo == ELBOW){
+  else if(which_servo == ELBOW){
     elbow.write(num);
     //slow_servo(num, BASE);
-    delay(1000);
+    delay(50);
   }
-  if(which_servo == ARM){
+  else if(which_servo == ARM){
     elbow.write(num);
     shoulder.write(num);
-    delay(1000);
+    delay(50);
   }
   else if(which_servo == ALL){
     control_arm();
-    delay(500);
+    delay(50);
+  }
+  else{
+    default_positions();
   }
   
-   
 }
 
