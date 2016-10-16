@@ -6,6 +6,12 @@ Servo base, shoulder, elbow, claw;
 //variables for the ultrasonic sensor underneath the arm
 #define echoPin 22
 #define trigPin 24
+#define BASE 1
+#define SHOULDER 2
+#define ELBOW 3
+#define CLAW 4
+#define ALL 5 //use all servos for grabbing
+#define ARM 6 //use elbow and shoulder servos
 
 int maximumRange = 200;
 int mininumRange = 0;
@@ -27,7 +33,10 @@ const int servoShoulder = 2;
 const int servoElbow = 3;
 const int servoClaw = 4;
 
-//variable for serial input from the arm_control_node
+//global variables for serial input from the arm_control_node
+int num;
+int input;
+int which_servo;
 int buff[5];
 int j = -1;
 
@@ -163,6 +172,7 @@ void setup(){
   pinMode(echoPin, INPUT);
 }
 
+/*
 void loop(){
   int num, input;
   if(Serial.available()){
@@ -192,5 +202,65 @@ void loop(){
     }
   }
 }
+*/
 
+void loop(){
+  if(Serial.available()){
+    input = Serial.read();
+    if(input==','){
+      num = calc();
+      j = -1;
+      //Serial.println(num);
+    }
+    else{
+      j++;
+      buff[j] = input;
+    }
+  }
+
+  //set which servo you want to change
+  if(num == 98){
+    which_servo = BASE;
+  }
+  else if(num == 97){
+    which_servo = SHOULDER;
+  }
+  else if(num == 96){
+    which_servo = ELBOW;
+  }
+  else if(num == 95){
+    which_servo = ALL;
+  }
+  else if(num == 94){
+    which_servo = ARM;
+  }
+
+  //move the servos
+  if(which_servo == BASE){
+    base.write(num);
+    //slow_servo(num, BASE);
+    delay(1000);
+  }
+  if(which_servo == SHOULDER){
+    shoulder.write(num);
+    //slow_servo(num, BASE);
+    delay(1000);
+  }
+  if(which_servo == ELBOW){
+    elbow.write(num);
+    //slow_servo(num, BASE);
+    delay(1000);
+  }
+  if(which_servo == ARM){
+    elbow.write(num);
+    shoulder.write(num);
+    delay(1000);
+  }
+  else if(which_servo == ALL){
+    control_arm();
+    delay(500);
+  }
+  
+   
+}
 

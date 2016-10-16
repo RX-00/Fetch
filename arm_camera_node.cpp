@@ -183,7 +183,7 @@ void find_target_object(int argc, char **argv){
 
     //show the results
     cv::imshow("Thresholded Image", imgThresholded); //show the thresholded image
-    cv::imshow("HSV Image", imgHSV); //show the HSV of the image
+    //cv::imshow("HSV Image", imgHSV); //show the HSV of the image
     cv::imshow("Original", original); //show the original image
     cv::imshow("Tracking", original + imgBlack); //show the original and the tracking
 

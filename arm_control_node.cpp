@@ -15,6 +15,7 @@
 #include <sstream>
 #include <fstream>
 #include <stdio.h>
+#include <unistd.h>
 #include <vector>
 #include <algorithm>
 #include <math.h>
@@ -26,8 +27,15 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/video.hpp>
 
+//DEFINE VARIABLES
+#define BASE 98 //send to the arduino to use the arm base servo
+#define SHOULDER 97 //send to the arduino to use the arm shoulder servo
+#define ELBOW 96 //send to the arduino to use the arm elbow servo
+#define ALL 95 //send to the arduino to use all servos
+#define ARM 94 //send to the arduino to use the arm elbow and shoulder servos
+
 //initiate the functions
-void send_movement(int arm_position_data);
+void send_movement(int which_servo, int arm_position_data);
 int calculate_movement_x(int x_coordinate);
 int calculate_movement_y(int y_coordinate);
 void ROS_Subscriber();
@@ -45,6 +53,7 @@ int servo_position;
 //>>>function to calculate the movement of the arm's servos depending on the x coordinate and the ultrasonic distance
 int calculate_movement_x(int x_coordinate){
   int arm_position_data = x_coordinate;
+  //int arm_position_data = 45;
   return arm_position_data;
 }
 //<<<function to calculate the movement of the arm's servos depending on the x coordinate and the ultrasonic distance
@@ -57,8 +66,9 @@ int calculate_movement_y(int y_coordinate){
 //<<<function to calculate the movement of the arm's servos depending on the y coordinate and the ultrasonic distance
 
 //>>>function to send the calculated movement to the arduino that controls the arm's servos
-void send_movement(int arm_position_data){
-  int data[] = {arm_position_data}; //data that we want to send
+void send_movement(int which_servo, int arm_position_data){
+  //which_servo values: 98 for base, 97 for shoulder, 96 for elbow
+  int data[] = {which_servo, arm_position_data}; //data that we want to send
   FILE *file;
   file = fopen("/dev/ttyACM0", "w"); //opens the serial port stream to the arduino Mega
   if(file == NULL){
@@ -67,10 +77,16 @@ void send_movement(int arm_position_data){
   }
 
   int i = 0;
-  for(; i<1; i++){
+  for(; i<2; i++){
     fprintf(file, "%d", data[i]); //write to the arduino
     fprintf(file, "%c", ','); //separate the digits
-    cout<<"data "<<i<<" sent: "<<data[i]<<endl;
+    if(i == 0){
+      cout<<"data which_servo "<<i<<" sent: "<<data[0]<<endl;
+    }
+    else{
+      cout<<"data arm_position_data "<<i<<" sent: "<<data[1]<<endl;
+    }
+    //usleep(1);
     sleep(1); //sleep so that the data can properly be sent without hold up
   }
   fclose(file);
@@ -89,26 +105,26 @@ void coordinatesCallBack(const std_msgs::Int32MultiArray::ConstPtr& coordinates)
   //NOTE: Keep the target object in sight (center to the arm), until fetch is facing the target object and the arm base servo is around 90 degrees
 
   //Y Coordinate based movement of the arm
-  //NOTE: 250 is the middle of the y axis
+  //NOTE: 250 is the middle of the y axis, min of 10, max of 460 (for the program)
   if(coordinates->data[1] > 250){
     servo_position = calculate_movement_y(coordinates->data[0]);
-    send_movement(servo_position); //send that it's ok to grab
+    send_movement(ARM, servo_position); //send that it's ok to grab
   }
 
 
   //X Coordinate based movement of the arm
-  //NOTE: 350 is the middle of the x axis
+  //NOTE: 350 is the middle of the x axis, min of 10, max of 600 (for the program)
   if(coordinates->data[0] > 250 && coordinates->data[0] < 450){ //if the target object is in front of fetch's arm camera
     servo_position = calculate_movement_x(coordinates->data[0]);
-    send_movement(servo_position);
+    send_movement(BASE, servo_position);
   }
   else if(coordinates->data[0] > 450){ //if the target object is to the right of fetch's arm camera
     servo_position = calculate_movement_x(coordinates->data[0]);
-    send_movement(servo_position);
+    send_movement(BASE, servo_position);
   }
   else if(coordinates->data[0] < 250){ //if the target object is to the left of fetch's arm camera
     servo_position = calculate_movement_x(coordinates->data[0]);
-    send_movement(servo_position);
+    send_movement(BASE, servo_position);
   }
 
 }
@@ -122,7 +138,7 @@ void distanceCallBack(const std_msgs::Int32::ConstPtr& distance){
   //algorithm for when to pick up the target object
   if((servo_position < 95 && servo_position > 85) && distance->data < 100){
     int go_grab_object = -1;
-    send_movement(go_grab_object);
+    send_movement(ALL, go_grab_object);
   }
 }
 //<<<ROS callback function for ultrasonic distance
@@ -173,7 +189,10 @@ void arm_movement(int argc, char **argv){
 
 //>>> int main
 int main(int argc, char **argv){
-  arm_movement(argc, argv);
+  //arm_movement(argc, argv);
+  //for(int i = 0; i < 90; i=i+10){
+  send_movement(BASE, 45);
+    //}
   return 0;
 }
 //<<< int main
