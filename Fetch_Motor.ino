@@ -22,6 +22,26 @@ INA | INB | DIAGA/ENA | DIAGB/ENB | OUTA | OUTB |         CS        | Operating 
 
   August 5, 2016
   -Roy Xing
+----------------------------------------
+  Everything works now with the battery
+  working full force
+  the launchpad still is supplying the
+  third power strip with its own power,
+  but the ground is universal (shared)
+  and things appear to be working fine
+
+  However, the right motor is not
+  responding, probably a wiring issue
+
+  November 11, 2016
+  -Roy Xing
+----------------------------------------
+  Fixed, the motor driver's soldering
+  job was just iffy (the pins not always
+  contacted to the PCB)
+
+  November 13, 2016
+  -Roy Xing
  --------------------------------------*/
 
 
@@ -29,12 +49,12 @@ INA | INB | DIAGA/ENA | DIAGB/ENB | OUTA | OUTB |         CS        | Operating 
 // Right Motor Pins
 #define INA_2 5
 #define INB_2 6
-#define PWM_2 PC_5
+#define PWM_2 /*PC_5*/ 36
 
 // Left Motor Pins
 #define INA_1 12
 #define INB_1 13
-#define PWM_1 PC_6
+#define PWM_1 /*PC_6*/ 35
 
 //Enconder Pins Definitions
 //Right encoder
@@ -84,8 +104,8 @@ void move_forward(){
 // Function to move left
 void move_left(){
   //Right Motor
-  digitalWrite(INA_2, LOW);
-  digitalWrite(INB_2, HIGH);
+  digitalWrite(INA_2, HIGH);
+  digitalWrite(INB_2, LOW);
   analogWrite(PWM_2, 255);
   
   //Left Motor
@@ -99,12 +119,12 @@ void move_right(){
   //Right Motor
   digitalWrite(INA_2, HIGH); 
   digitalWrite(INB_2, HIGH); 
-  analogWrite(PWM_2, 255);
+  analogWrite(PWM_2, 0);
   
   //Left Motor
   digitalWrite(INA_1, HIGH); 
   digitalWrite(INB_1, LOW);
-  analogWrite(PWM_1, 0);
+  analogWrite(PWM_1, 255);
 }
 
 // Function to move backwards
@@ -125,12 +145,12 @@ void stop(){
     //Right Motor
   digitalWrite(INA_2, HIGH); 
   digitalWrite(INB_2, HIGH); 
-  analogWrite(PWM_2, 255);
+  analogWrite(PWM_2, 0);
   
   //Left Motor
   digitalWrite(INA_1, HIGH); 
   digitalWrite(INB_1, HIGH); 
-  analogWrite(PWM_1, 255);  
+  analogWrite(PWM_1, 0);  
 }
 
 // Function to set up the encoders
@@ -147,6 +167,9 @@ void set_up_encoders(){
 
   //configure one of the encoder pins as an interrupt when a rise in pulse is detected
   attachInterrupt(Right_Encoder_PinA, do_Right_Encoder, RISING);
+
+  //configure one of the encoder pins as an interrupt when a rise in pulse is detected
+  attachInterrupt(Left_Encoder_PinA, do_Left_Encoder, RISING);
 }
 
 // Function to print the updated ticks of the encoders to the serial monitor
@@ -194,21 +217,21 @@ void loop(){
   update_encoders();
   
   //Move forward for 5 seconds
-  move_forward();
-  delay(5000);
+  //move_forward();
+  //delay(5000);
 
   //Stop for 1 second
-  stop();
-  delay(1000);
+  //stop();
+  //delay(1000);
 
   //Move backward for 5 seconds
-  move_backwards();
-  delay(5000);
+  //move_backwards();
+  //delay(5000);
 
   //Move right for 5 seconds
   move_right();
   delay(5000);
-  
+
   //Move left for 5 seconds
   move_left();
   delay(5000);
