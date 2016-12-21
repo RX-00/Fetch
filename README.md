@@ -12,6 +12,8 @@ http://wiki.ros.org/openni_kinect
 Maybe http://wiki.ros.org/openni_camera
 https://richardstechnotes.wordpress.com/2015/11/22/using-the-kinect-and-ros-openni_camera-on-the-raspberry-pi-2/
 
+Uses ROS Indigo
+
 
 C++ Compiler, g++
 g++ `pkg-config opencv --cflags` shaky_camera_HSV_BGR.cpp -o shaky_camera_HSV_BGR.out `pkg-config opencv --libs` -I/usr/local/include/opencvblobslib -L/usr/local/lib -lopencvblobslib -std=c++11
