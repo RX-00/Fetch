@@ -1,3 +1,4 @@
+//This program is meant to test and control the motors on the robot, Fetch
 /*
 TRUTH TABLE OF THE INPUT AND OUTPUT COMBOS
 ------------------------------------------
@@ -102,8 +103,10 @@ void move_forward(){
 }
 
 // Function to move left
+//NOTE: THESE PIN OUTPUTS MAYBE BACKWARDS
 void move_left(){
   //Right Motor
+  
   digitalWrite(INA_2, HIGH);
   digitalWrite(INB_2, LOW);
   analogWrite(PWM_2, 255);
@@ -112,6 +115,20 @@ void move_left(){
   digitalWrite(INA_1, HIGH);
   digitalWrite(INB_1, HIGH);
   analogWrite(PWM_1, 0);
+ 
+
+  //TEST INVERSE OF THE ORIGINAL
+  //Right Motor
+  /*
+  digitalWrite(INA_2, HIGH);
+  digitalWrite(INB_2, LOW);
+  analogWrite(PWM_2, 0);
+  //Left Motor
+  digitalWrite(INA_1, HIGH);
+  digitalWrite(INB_1, HIGH);
+  analogWrite(PWM_1, 0);
+  */
+  
 }
 
 // Function to move right
@@ -122,8 +139,8 @@ void move_right(){
   analogWrite(PWM_2, 0);
   
   //Left Motor
-  digitalWrite(INA_1, HIGH); 
-  digitalWrite(INB_1, LOW);
+  digitalWrite(INA_1, LOW); //OG HIGH
+  digitalWrite(INB_1, HIGH); //OG LOW
   analogWrite(PWM_1, 255);
 }
 
@@ -229,10 +246,10 @@ void loop(){
   //delay(5000);
 
   //Move right for 5 seconds
-  move_right();
+  //move_right(); //this moves both motors backwards
   delay(5000);
 
   //Move left for 5 seconds
-  move_left();
+  move_left(); //moves both servoes forward
   delay(5000);
 }
