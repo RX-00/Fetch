@@ -18,6 +18,7 @@ Uses ROS Indigo
 C++ Compiler, g++
 g++ `pkg-config opencv --cflags` shaky_camera_HSV_BGR.cpp -o shaky_camera_HSV_BGR.out `pkg-config opencv --libs` -I/usr/local/include/opencvblobslib -L/usr/local/lib -lopencvblobslib -std=c++11
 
+
 Gmapping demo commands
 roscore
 roslaunch chefbot_gazebo chefbot_hotel_world.launch
@@ -25,12 +26,15 @@ roslaunch chefbot_gazebo gmapping_demo.launch
 roslaunch turtlebot_rviz_launchers view_navigation.launch
 roslaunch turtlebot_teleop keyboard_teleop.launch
 
+
 For use of MPU6050 IMU
 https://github.com/jrowberg/i2cdevlib/tree/master/Arduino/MPU6050
 https://www.i2cdevlib.com/devices/mpu6050
 
+
 Blog:
 http://royxingrobots.blogspot.com/
+
 
 Hardware:
 
