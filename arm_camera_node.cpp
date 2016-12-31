@@ -62,10 +62,8 @@ int LastX = -1;
 int LastY = -1;
 
 
-
 //initiate your functions
 float distance_formula(float x1, float x2, float y1, float y2);
-//int find_target_object();
 void find_target_object(int argc, char **argv);
 void createTrackbars();
 void ROS_Publisher();

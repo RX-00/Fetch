@@ -34,6 +34,8 @@
 #define ALL 95 //send to the arduino to use all servos
 #define ARM 94 //send to the arduino to use the arm elbow and shoulder servos
 
+using namespace std;
+
 //initiate the functions
 void send_movement(int which_servo, int arm_position_data);
 int calculate_movement_x(int x_coordinate);
@@ -44,7 +46,6 @@ void distanceCallBack(const std_msgs::Int32::ConstPtr& distance);
 void ROS_Publisher();
 void arm_movement(int argc, char **argv);
 
-using namespace std;
 
 //global variables
 int x_coordinate;
