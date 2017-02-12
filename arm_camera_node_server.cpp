@@ -50,27 +50,27 @@ int LastY = -1;
 
 
 //initiate your functions
-void find_target_object(int argc, char **argv);
-void create_trackbars();
+//void find_target_object(int argc, char **argv);
+//void create_trackbars();
 
-
+/*
 //>>>trackbars for filtering bsaed on color
 void create_trackbars(){
   //create window named Control Colors
-  namedWindow("Control Colors", CV_WINDOW_AUTOSIZE);
+  cv::namedWindow("Control Colors", CV_WINDOW_AUTOSIZE);
   //Create the trackbars
-  cvCreateTrackbar("LowH", "Control Colors", &LowH, 179);
-  cvCreateTrackbar("HighH", "Control Colors", &HighH, 179);
+  //cvCreateTrackbar("LowH", "Control Colors", &LowH, 179);
+  //cvCreateTrackbar("HighH", "Control Colors", &HighH, 179);
 
-  cvCreateTrackbar("LowS", "Control Colors", &LowS, 255);
-  cvCreateTrackbar("HighS", "Control Colors", &HighS, 255);
+  //cvCreateTrackbar("LowS", "Control Colors", &LowS, 255);
+  //cvCreateTrackbar("HighS", "Control Colors", &HighS, 255);
 
-  cvCreateTrackbar("LowV", "Control Colors", &LowV, 255);
-  cvCreateTrackbar("HighV", "Control Colors", &HighV, 255);
+  //cvCreateTrackbar("LowV", "Control Colors", &LowV, 255);
+  //cvCreateTrackbar("HighV", "Control Colors", &HighV, 255);
 }
 //<<<trackbars for filtering based on color
 
-
+/*
 //>>>image processing from the camera
 void find_target_object(int argc, char **argv){
   ros::init(argc, argv, "arm_camera_node_server");
@@ -88,10 +88,12 @@ bool camera(fetch::arm_camera_node_server::Request &req, fetch::arm_control_node
   return true;
 }
 //<<<service for taking in the request from the arm_control_node_client and response type defined in the srv file and returns a boolean
+*/
 
 //>>>int main
 int main(int argc, char **argv){
-  find_target_object(argc, argv);
+  //find_target_object(argc, argv);
   return 0;
 }
 //<<<int main
+
