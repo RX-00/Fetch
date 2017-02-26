@@ -103,7 +103,7 @@ void find_target_object(int argc, char **argv){
   ros::NodeHandle n;
 
   //ros::Publisher chatter_pub = n.advertise<std_msgs::Int32>("target_object_coordinates", 1000);
-  ros::Publisher chatter_pub = n.advertise<std_msgs::Int32MultiArray>("target_object_coordinates", 1000);
+  ros::Publisher chatter_pub = n.advertise<std_msgs::Int32MultiArray>("target_object_coordinates", 10);
   ros::Rate loop_rate(10);
   //<<<ROS initiation
 

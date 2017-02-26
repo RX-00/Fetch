@@ -9,6 +9,7 @@
 #include "std_msgs/Int32MultiArray.h"
 #include "std_msgs/MultiArrayLayout.h"
 #include "std_msgs/MultiArrayDimension.h"
+#include "std_msgs/Float32.h"
 
 //C++ stuff
 #include <iostream>
@@ -27,46 +28,51 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/video.hpp>
 
-//DEFINE VARIABLES
-#define BASE 98 //send to the arduino to use the arm base servo
-#define SHOULDER 97 //send to the arduino to use the arm shoulder servo
-#define ELBOW 96 //send to the arduino to use the arm elbow servo
-#define ALL 95 //send to the arduino to use all servos
-#define ARM 94 //send to the arduino to use the arm elbow and shoulder servos
+#define PI 3.14159265
 
 using namespace std;
 
 //initiate the functions
 int calculate_movement_x(int x_coordinate);
 int calculate_movement_y(int y_coordinate);
-void calculate_movement(int x, int y, int ultrasonic);
+void calculate_movement(int x_coor, int y_coor, float ultrasonic);
 void ROS_Subscriber();
 void ROS_Publisher();
 void coordinatesCallBack(const std_msgs::Int32MultiArray::ConstPtr& coordinates);
-void distanceCallBack(const std_msgs::Int32::ConstPtr& distance);
-void ROS_Publisher();
+void distanceCallBack(const std_msgs::Float32::ConstPtr& distance);
 void arm_movement(int argc, char **argv);
 
 
 //global variables
-int posClaw;
-int posElbow;
-int posShoulder;
-int posBase;
+bool targetClose = false;
+int posClaw = 90;
+int posElbow = 90;
+int posShoulder = 90;
+int posBase = 90;
 int x_coordinate;
 int y_coordinate;
+float ultra_distance = 0;
 
 
 //>>>function to calculate and set the positions of the arm to send to the arm
-void calculate_movement(int x, int y, int ultrasonic){
+void calculate_movement(int x_coor, int y_coor, float ultrasonic){
   int calcElbow, calcShoulder;
 
+  //simple trig to figure out the angles that the elbow and shoulder need to be set to
+  //NOTE: every time the shoulder moves by ___ the elbow moves by ___
+  if(int(ultrasonic) < 21){ //assumes that ultrasonic is measured in cm
+    ultrasonic = ultrasonic - 12;
+    posElbow = asin(ultrasonic / 16) * 180.0 / PI + 45;
+    posShoulder = 180;
+    posClaw = 120;
+  }
 
-
+  /*
   posClaw = 120;
   posElbow = calcElbow;
   posShoulder = calcShoulder;
   posBase = 90;
+  */
 }
 //<<<function to calculate and set the positions of the arm to send to the arm
 
@@ -126,15 +132,14 @@ void send_movement(int posBase, int posShoulder, int posElbow, int posClaw){
 
 //>>>ROS callback function for the target object coordinates
 void coordinatesCallBack(const std_msgs::Int32MultiArray::ConstPtr& coordinates){
-  int servo_position;
   //ROS_INFO("I heard coordinates: [%d]", x_coordinate->data.c_str());
-  ROS_INFO("I heard coordinates: x coordinate: %d", coordinates->data[0]);
-  ROS_INFO("                     y coordinate: %d", coordinates->data[1]);
+  //ROS_INFO("I heard coordinates: x coordinate: %d", coordinates->data[0]);
+  //ROS_INFO("                     y coordinate: %d", coordinates->data[1]);
 
   x_coordinate = coordinates->data[0];
   y_coordinate = coordinates->data[1];
 
-  //cout<<x_coordinate->data<<endl;
+  //cout<<"X: "<<x_coordinate<<", Y: "<<y_coordinate<<endl;
 
   //algorithm for tracking the target object
   //NOTE: Keep the target object in sight (center to the arm), until fetch is facing the target object and the arm base servo is around 90 degrees
@@ -142,7 +147,7 @@ void coordinatesCallBack(const std_msgs::Int32MultiArray::ConstPtr& coordinates)
   //Y Coordinate based movement of the arm
   //NOTE: 250 is the middle of the y axis, min of 10, max of 460 (for the program)
 
-  if(coordinates->data[1] > 400){
+  if(coordinates->data[1] > 400 /*&& int(ultra_distance) < 10*/){
     cout<<"target object is close"<<endl;
     //servo_position = calculate_movement_y(coordinates->data[0]);
   }
@@ -158,43 +163,16 @@ void coordinatesCallBack(const std_msgs::Int32MultiArray::ConstPtr& coordinates)
 
 
 //>>>ROS callback function for ultrasonic distance
-void distanceCallBack(const std_msgs::Int32::ConstPtr& distance){
+void distanceCallBack(const std_msgs::Float32::ConstPtr& distance){
   //ROS_INFO("I heard distance: [%d]", distance->data.c_str());
-  ROS_INFO("I heard distance: %d", distance->data);
+  ROS_INFO("I heard distance: %f", distance->data);
 
-  int ultra_distance = distance->data;
+  ultra_distance = distance->data;
 
-  //algorithm for when to pick up the target object
-  if(ultra_distance < 100 && y_coordinate > 250){
-    int go_grab_object = -1;
-    //send_movement(ALL, go_grab_object);
-  }
+  if (ultra_distance < 21) targetClose = true;
+  if (targetClose == true) calculate_movement(x_coordinate, y_coordinate, ultra_distance);
 }
 //<<<ROS callback function for ultrasonic distance
-
-
-//>>>ROS subscriber code, NOTE: the beginning of this should be in the beginning of the "main program"
-void ROS_Subscriber(int argc, char **argv){
-  //initiate a node called "Arm_Control_Node"
-  ros::init(argc, argv, "arm_control_node");
-
-  //this is the main access point to communications with the ROS system, this first one fully initializes this node
-  ros::NodeHandle n;
-
-  /*The subscribe() call is how you tell ROS you want to receive messages on a given topic
-  -Invokes a call to the ROS master node
-  -Messages are passed to callback function
-  -subscribe() returns a Subscriber object that you must hold on to until you want to unsubscribe
-  - When all copies of the Subscribed obbject go out of scope, this callback will automatically be unsubscribed form this topic
-  -the second parameter to the subscribe() function is the size of the message queue
-  */
-  ros::Subscriber sub_coordinates = n.subscribe("target_object_coordinates", 10, coordinatesCallBack);
-  ros::Subscriber sub_distance = n.subscribe("target_object_distance", 10, distanceCallBack);
-
-  //this will enter a loop, pumping callbacks
-  ros::spin(); //only exits with Ctrl-C or if the node is shutdown by the master
-}
-//<<<ROS subscriber code
 
 
 //>>>ROS publisher arm position data to Serial_Communication Python node
@@ -218,7 +196,6 @@ void ROS_Publisher(int argc, char **argv){
 //<<<ROS publisher arm position data to Serial_Communication Python node
 
 
-
 //>>> Main Program
 void arm_movement(int argc, char **argv){
   //initiate a node called "Arm_Control_Node"
@@ -226,35 +203,44 @@ void arm_movement(int argc, char **argv){
   //this is the main access point to communications with the ROS system, this first one fully initializes this node
   ros::NodeHandle n;
 
-  /*
-  //subscribers
-  ros::Subscriber sub_coordinates = n.subscribe("target_object_coordinates", 1000, coordinatesCallBack);
-  ros::Subscriber sub_distance = n.subscribe("", 100, distanceCallBack);
-  ros::spin();
-  */
 
-  //publishers
-  ros::Publisher pub_posData = n.advertise<std_msgs::Int32MultiArray>("posData", 4);
-  while(ros::ok()){
-    std_msgs::Int32MultiArray posData;
-    posData.data.clear();
+  while(1){
+    //subscribers
+    ros::Subscriber sub_coordinates = n.subscribe("target_object_coordinates", 10, coordinatesCallBack);
+    ros::Subscriber sub_distance = n.subscribe("ultrasonic_distance", 10, distanceCallBack);
+    ros::spin();
 
-    /*
-    posData.data.push_back(posBase);
-    posData.data.push_back(posShoulder);
-    posData.data.push_back(posElbow);
-    posData.data.push_back(posClaw);
-    */
 
-    for(int i = 0; i < 4; i++){
-      posData.data.push_back(rand() % 180);
+    //publishers
+    ros::Publisher pub_posData = n.advertise<std_msgs::Int32MultiArray>("posData", 4);
+    while(ros::ok() /*&& targetClose == true*/){
+      std_msgs::Int32MultiArray posData;
+      posData.data.clear();
+
+      for(int i = 0; i < 4; i++){
+        //posData.data.push_back(rand() % 180);
+        switch(i){
+        case 1:
+          posData.data.push_back(posBase);
+          break;
+        case 2:
+          posData.data.push_back(posShoulder);
+          break;
+        case 3:
+          posData.data.push_back(posElbow);
+          break;
+        case 4:
+          posData.data.push_back(posClaw);
+          break;
+        }
+      }
+
+      pub_posData.publish(posData);
+      ROS_INFO("Published posData");
+      cout<<posData<<endl;
+      ros::spinOnce();
+      sleep(10);
     }
-
-    pub_posData.publish(posData);
-    ROS_INFO("Published posData");
-    cout<<posData<<endl;
-    ros::spinOnce();
-    sleep(10);
   }
 }
 //<<< Main Program
@@ -263,6 +249,7 @@ void arm_movement(int argc, char **argv){
 //>>> int main
 int main(int argc, char **argv){
   arm_movement(argc, argv);
+  cout<<"Test"<<endl;
 
   /*
   while(true){
