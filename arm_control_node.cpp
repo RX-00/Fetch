@@ -49,8 +49,8 @@ int posClaw = 90;
 int posElbow = 90;
 int posShoulder = 90;
 int posBase = 90;
-int x_coordinate;
-int y_coordinate;
+int x_coordinate = 0;
+int y_coordinate = 0;
 float ultra_distance = 0;
 
 
@@ -139,7 +139,7 @@ void coordinatesCallBack(const std_msgs::Int32MultiArray::ConstPtr& coordinates)
   x_coordinate = coordinates->data[0];
   y_coordinate = coordinates->data[1];
 
-  //cout<<"X: "<<x_coordinate<<", Y: "<<y_coordinate<<endl;
+  cout<<"X: "<<x_coordinate<<", Y: "<<y_coordinate<<endl;
 
   //algorithm for tracking the target object
   //NOTE: Keep the target object in sight (center to the arm), until fetch is facing the target object and the arm base servo is around 90 degrees
@@ -168,6 +168,8 @@ void distanceCallBack(const std_msgs::Float32::ConstPtr& distance){
   ROS_INFO("I heard distance: %f", distance->data);
 
   ultra_distance = distance->data;
+
+  cout<<"distance: "<<ultra_distance<<endl;
 
   if (ultra_distance < 21) targetClose = true;
   if (targetClose == true) calculate_movement(x_coordinate, y_coordinate, ultra_distance);
@@ -204,16 +206,16 @@ void arm_movement(int argc, char **argv){
   ros::NodeHandle n;
 
 
-  while(1){
+  while(1 && ros::ok()){
     //subscribers
     ros::Subscriber sub_coordinates = n.subscribe("target_object_coordinates", 10, coordinatesCallBack);
     ros::Subscriber sub_distance = n.subscribe("ultrasonic_distance", 10, distanceCallBack);
-    ros::spin();
+    //ros::spin();
 
 
     //publishers
     ros::Publisher pub_posData = n.advertise<std_msgs::Int32MultiArray>("posData", 4);
-    while(ros::ok() /*&& targetClose == true*/){
+    //while(ros::ok() /*&& targetClose == true*/){
       std_msgs::Int32MultiArray posData;
       posData.data.clear();
 
@@ -240,7 +242,7 @@ void arm_movement(int argc, char **argv){
       cout<<posData<<endl;
       ros::spinOnce();
       sleep(10);
-    }
+      //}
   }
 }
 //<<< Main Program

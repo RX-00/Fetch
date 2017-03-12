@@ -1,0 +1,8 @@
+<launch>
+
+        <node name="arm_control_node" pkg="fetch" type="arm_control_node" />
+        <node name="arm_camera_node" pkg="fetch" type="arm_camera_node" />
+        <node name="serial_communication_arm" pkg="fetch" type="Serial_Communication_Arm.py" />
+        <!-- NOTE: use launchpad_node_test for now instead of Serial_Sensors_And_Motors until Serial_Sensors_And_Motors is fixed -->
+        <node name="sensors_and_motors" pkg="fetch" type="launchpad_node_test.py" />
+</launch>

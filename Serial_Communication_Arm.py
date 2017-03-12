@@ -8,7 +8,7 @@ import syslog
 from std_msgs.msg import String
 from std_msgs.msg import Int32MultiArray
 
-port = '/dev/ttyACM0'
+port = '/dev/ttyACM1'
 
 arduino = serial.Serial(port, 9600, timeout = 1)
 

@@ -62,11 +62,258 @@ int LastX = -1;
 int LastY = -1;
 
 
-//initiate your functions
-float distance_formula(float x1, float x2, float y1, float y2);
-void find_target_object(int argc, char **argv);
-void createTrackbars();
-void ROS_Publisher();
+//User choose target object code>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+//initial min and max HSV filter values.
+//these will be changed using trackbars
+int H_MIN = 0;
+int H_MAX = 256;
+int S_MIN = 0;
+int S_MAX = 256;
+int V_MIN = 0;
+int V_MAX = 256;
+//default capture width and height
+const int FRAME_WIDTH = 640;
+const int FRAME_HEIGHT = 480;
+//max number of objects to be detected in frame
+const int MAX_NUM_OBJECTS = 50;
+//minimum and maximum object area
+const int MIN_OBJECT_AREA = 20 * 20;
+const int MAX_OBJECT_AREA = FRAME_HEIGHT*FRAME_WIDTH / 1.5;
+//names that will appear at the top of each window
+const string windowName = "Original Image";
+const string windowName1 = "HSV Image";
+const string windowName2 = "Thresholded Image";
+const string windowName3 = "After Morphological Operations";
+const string trackbarWindowName = "Trackbars";
+
+bool caliMode;//used for showing debugging windows, trackbars etc.
+
+bool mouseDragging;//used for showing a rectangle on screen as user clicks and drags mouse
+bool mouseMove;
+bool rectangleSelected;
+cv::Point initialClickPt, currentMousePt; //keep track of initial point clicked and current position of mouse
+cv::Rect rectangleROI; //this is the ROI that the user has selected
+vector<int> H_ROI, S_ROI, V_ROI;// HSV values from the click/drag ROI region stored in separate vectors so that we can sort them easily
+
+void on_trackbar(int, void*){//This function gets called whenever a trackbar position is changed
+
+}
+
+void createTrackbars(){
+	//create window for trackbars
+	namedWindow(trackbarWindowName, 0);
+
+	//create memory to store trackbar name on window
+	char TrackbarName[50];
+	sprintf(TrackbarName, "H_MIN", H_MIN);
+	sprintf(TrackbarName, "H_MAX", H_MAX);
+	sprintf(TrackbarName, "S_MIN", S_MIN);
+	sprintf(TrackbarName, "S_MAX", S_MAX);
+	sprintf(TrackbarName, "V_MIN", V_MIN);
+	sprintf(TrackbarName, "V_MAX", V_MAX);
+	//create trackbars and insert them into the window
+	createTrackbar("H_MIN", trackbarWindowName, &H_MIN, 255, on_trackbar);
+	createTrackbar("H_MAX", trackbarWindowName, &H_MAX, 255, on_trackbar);
+	createTrackbar("S_MIN", trackbarWindowName, &S_MIN, 255, on_trackbar);
+	createTrackbar("S_MAX", trackbarWindowName, &S_MAX, 255, on_trackbar);
+	createTrackbar("V_MIN", trackbarWindowName, &V_MIN, 255, on_trackbar);
+	createTrackbar("V_MAX", trackbarWindowName, &V_MAX, 255, on_trackbar);
+}
+
+
+void clickDragRect(int event, int x, int y, int flags, void* param){
+	//only if calibration mode is true will we use the mouse to change HSV values
+	if (caliMode == true){
+		//get handle to video feed passed in as "param" and cast as Mat pointer
+		Mat* videoFeed = (Mat*)param;
+
+		if (event == CV_EVENT_LBUTTONDOWN && mouseDragging == false){
+			//keep track of initial point clicked
+			initialClickPt = cv::Point(x, y);
+			//user has begun dragging the mouse
+			mouseDragging = true;
+		}
+		/* user is dragging the mouse */
+		if (event == CV_EVENT_MOUSEMOVE && mouseDragging == true){
+			//keep track of current mouse point
+			currentMousePt = cv::Point(x, y);
+			//user has moved the mouse while clicking and dragging
+			mouseMove = true;
+		}
+		/* user has released left button */
+		if (event == CV_EVENT_LBUTTONUP && mouseDragging == true){
+			//set rectangle ROI to the rectangle that the user has selected
+			rectangleROI = Rect(initialClickPt, currentMousePt);
+
+			//reset boolean variables
+			mouseDragging = false;
+			mouseMove = false;
+			rectangleSelected = true;
+		}
+
+		if (event == CV_EVENT_RBUTTONDOWN){
+			//user has clicked right mouse button
+			//Reset HSV Values
+			H_MIN = 0;
+			S_MIN = 0;
+			V_MIN = 0;
+			H_MAX = 255;
+			S_MAX = 255;
+			V_MAX = 255;
+
+		}
+	}
+}
+
+
+void recordHSV_Values(cv::Mat frame, cv::Mat HSV_Frame){
+
+	//save HSV values for ROI that user selected to a vector
+	if (mouseMove == false && rectangleSelected == true){
+		//clear previous vector values
+		if (H_ROI.size()>0) H_ROI.clear();
+		if (S_ROI.size()>0) S_ROI.clear();
+		if (V_ROI.size()>0 )V_ROI.clear();
+		//if the rectangle has no width or height (user has only dragged a line) then we don't try to iterate over the width or height
+		if (rectangleROI.width < 1 || rectangleROI.height < 1) cout <<"Error: no rectangle created" << endl;
+		else{
+			for (int i = rectangleROI.x; i < rectangleROI.x + rectangleROI.width; i++){
+				//iterate through both x and y direction and save HSV values at each and every point
+				for (int j = rectangleROI.y; j < rectangleROI.y + rectangleROI.height; j++){
+					//save HSV value at this point
+					H_ROI.push_back((int)HSV_Frame.at<cv::Vec3b>(j, i)[0]);
+					S_ROI.push_back((int)HSV_Frame.at<cv::Vec3b>(j, i)[1]);
+					V_ROI.push_back((int)HSV_Frame.at<cv::Vec3b>(j, i)[2]);
+				}
+			}
+		}
+		//reset rectangleSelected so user can select another region if necessary
+		rectangleSelected = false;
+		//set min and max HSV values from min and max elements of each array
+		if (H_ROI.size() > 0){
+			//NOTE: min_element and max_element return iterators so we must dereference them with "*"
+			H_MIN = *std::min_element(H_ROI.begin(), H_ROI.end());
+			H_MAX = *std::max_element(H_ROI.begin(), H_ROI.end());
+			cout << "MIN 'H' VALUE: " << H_MIN << endl;
+			cout << "MAX 'H' VALUE: " << H_MAX << endl;
+		}
+		if (S_ROI.size() > 0){
+			S_MIN = *std::min_element(S_ROI.begin(), S_ROI.end());
+			S_MAX = *std::max_element(S_ROI.begin(), S_ROI.end());
+			cout << "MIN 'S' VALUE: " << S_MIN << endl;
+			cout << "MAX 'S' VALUE: " << S_MAX << endl;
+		}
+		if (V_ROI.size() > 0){
+			V_MIN = *std::min_element(V_ROI.begin(), V_ROI.end());
+			V_MAX = *std::max_element(V_ROI.begin(), V_ROI.end());
+			cout << "MIN 'V' VALUE: " << V_MIN << endl;
+			cout << "MAX 'V' VALUE: " << V_MAX << endl;
+		}
+
+	}
+
+	if (mouseMove == true){
+		//if the mouse is held down, we will draw the click and dragged rectangle to the screen
+		rectangle(frame, initialClickPt, cv::Point(currentMousePt.x, currentMousePt.y), cv::Scalar(0, 255, 0), 1, 8, 0);
+	}
+
+
+}
+
+string intToString(int number){
+	std::stringstream ss;
+	ss << number;
+	return ss.str();
+}
+
+
+void drawCrosshairs(int x, int y, Mat &frame){
+
+	//'if' and 'else' statements to prevent
+	//memory errors from writing off the screen (ie. (-25,-25) is not within the window)
+
+	circle(frame, Point(x, y), 20, Scalar(0, 255, 0), 2);
+	if (y - 25 > 0)
+		line(frame, Point(x, y), Point(x, y - 25), Scalar(0, 255, 0), 2);
+	else line(frame, Point(x, y), Point(x, 0), Scalar(0, 255, 0), 2);
+	if (y + 25 < FRAME_HEIGHT)
+		line(frame, Point(x, y), Point(x, y + 25), Scalar(0, 255, 0), 2);
+	else line(frame, Point(x, y), Point(x, FRAME_HEIGHT), Scalar(0, 255, 0), 2);
+	if (x - 25 > 0)
+		line(frame, Point(x, y), Point(x - 25, y), Scalar(0, 255, 0), 2);
+	else line(frame, Point(x, y), Point(0, y), Scalar(0, 255, 0), 2);
+	if (x + 25 < FRAME_WIDTH)
+		line(frame, Point(x, y), Point(x + 25, y), Scalar(0, 255, 0), 2);
+	else line(frame, Point(x, y), Point(FRAME_WIDTH, y), Scalar(0, 255, 0), 2);
+
+	putText(frame, intToString(x) + "," + intToString(y), Point(x, y + 30), 1, 1, Scalar(0, 255, 0), 2);
+
+}
+
+
+void morphOps(Mat &thresh){
+	//create structuring element that will be used to "dilate" and "erode" image.
+	//the element chosen here is a 3px by 3px rectangle
+	Mat erodeElement = getStructuringElement(MORPH_RECT, Size(3, 3));
+	//dilate with larger element so make sure object is nicely visible
+	Mat dilateElement = getStructuringElement(MORPH_RECT, Size(8, 8));
+
+	erode(thresh, thresh, erodeElement);
+	erode(thresh, thresh, erodeElement);
+
+	dilate(thresh, thresh, dilateElement);
+	dilate(thresh, thresh, dilateElement);
+}
+
+
+void trackFilteredObject(int &x, int &y, Mat threshold, Mat &cameraFeed){
+	Mat temp;
+	threshold.copyTo(temp);
+	//these two vectors needed for output of findContours
+	vector< vector<Point> > contours;
+	vector<Vec4i> hierarchy;
+	//find contours of filtered image using openCV findContours function
+	findContours(temp, contours, hierarchy, CV_RETR_CCOMP, CV_CHAIN_APPROX_SIMPLE);
+	//use moments method to find our filtered object
+	double refArea = 0;
+	int largestIndex = 0;
+	bool objectFound = false;
+	if (hierarchy.size() > 0){
+		int numObjects = hierarchy.size();
+		//if number of objects greater than MAX_NUM_OBJECTS we have a noisy filter
+		if (numObjects < MAX_NUM_OBJECTS){
+			for (int index = 0; index >= 0; index = hierarchy[index][0]){
+				Moments moment = moments((cv::Mat)contours[index]);
+				double area = moment.m00;
+
+				//if the area is less than 20 px by 20px then it is probably just noise
+				//if the area is the same as the 3/2 of the image size, probably just a bad filter
+				//we only want the object with the largest area so we save a reference area each
+				//iteration and compare it to the area in the next iteration.
+				if (area > MIN_OBJECT_AREA && area<MAX_OBJECT_AREA && area>refArea){
+					x = moment.m10 / area;
+					y = moment.m01 / area;
+					objectFound = true;
+					refArea = area;
+					//save index of largest contour to use with drawContours
+					largestIndex = index;
+				}
+				else objectFound = false;
+			}
+			//let user know you found an object
+			if (objectFound == true){
+				putText(cameraFeed, "Tracking Object", Point(0, 50), 2, 1, Scalar(0, 255, 0), 2);
+				//draw object location on screen
+				drawCrosshairs(x, y, cameraFeed);
+				//draw largest contour
+				drawContours(cameraFeed, contours, largestIndex, Scalar(0, 255, 255), 2);
+			}
+		}
+		else putText(cameraFeed, "Error: too much noise, change filter", Point(0, 50), 1, 2, Scalar(0, 0, 255), 2);
+	}
+}
+//User choose target object code<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+
 
 //>>>Euclidian Distance Formula
 float distance_formula(float x1, float x2, float y1, float y2){
@@ -78,10 +325,9 @@ float distance_formula(float x1, float x2, float y1, float y2){
 
 
 //>>>trackbars for filtering based on color
-void createTrackbars(){
+void create_Trackbars(){
   //create window
   namedWindow("Control Colors", CV_WINDOW_AUTOSIZE);
-  //I just want to forget
   //Create the trackbars
   cvCreateTrackbar("LowH", "Control Colors", &LowH, 179);
   cvCreateTrackbar("HighH", "Control Colors", &HighH, 179);
@@ -117,7 +363,7 @@ void find_target_object(int argc, char **argv){
   }
 
   //initiate the trackbars
-  createTrackbars();
+  create_Trackbars();
 
   //capture a temporary image from the camera to analyze
   cv::Mat imgTmp;
@@ -193,9 +439,6 @@ void find_target_object(int argc, char **argv){
 
     //>>>Publish the x coordinate to ros
     std_msgs::Int32MultiArray coordinates;
-    //cout<<"Error here? 1"<<endl;
-    //clear array
-    //coordinates.data.clear();
 
     //for loop to push data into the array
     for(int i = 0; i < 2; i++){
@@ -213,13 +456,12 @@ void find_target_object(int argc, char **argv){
     chatter_pub.publish(coordinates);
 
     //anounce that the array was published
-    ROS_INFO("Camera Coordinates published: x coordinate: %d", coordinates.data[0]);
-    ROS_INFO("                              y coordinate: %d", coordinates.data[1]);
+    ROS_INFO("Camera Coordinates published: x coordinate: %d, y coordinate: %d", coordinates.data[0], coordinates.data[1]);
+    //ROS_INFO("Camera Coordinates published:  y coordinate: %d", coordinates.data[1]);
     ros::spinOnce();
 
     loop_rate.sleep();
     //<<<Publish the x coordinate to ros
-
 
     if (waitKey(30) == 27){ //wait for 'esc' key press for 30ms. If 'esc' key is pressed, break loop
       cout<<"esc key has been pressed by user, exiting and terminated program"<< endl;
@@ -271,22 +513,121 @@ void ROS_Publisher(int argc, char **argv){
     loop_rate.sleep();
     ++count;
   }
-
-
 }
 //<<<ROS code
 
 
 //>>> int main
 int main(int argc, char **argv){//passing argc and argv is needed here to perform any ROS arguments and name remapping given at the command line
+  //find_target_object(argc, argv);
 
-  //ROS_Publisher();
-  //initiate a node called "Arm_Camera_Node"
-  //ros::init(argc, argv, "Arm_Camera_Node");
-  //this is the main access point to communications with the ROS system, this first one fully initializes this node
+  //>>>ROS initiation, which should be properly called on the first line of the "main program"
+  ros::init(argc, argv, "Arm_Camera_Node");
+  ros::NodeHandle n;
 
-  find_target_object(argc, argv);
+  //ros::Publisher chatter_pub = n.advertise<std_msgs::Int32>("target_object_coordinates", 1000);
+  ros::Publisher chatter_pub = n.advertise<std_msgs::Int32MultiArray>("target_object_coordinates", 10);
+  ros::Rate loop_rate(10);
 
+  std_msgs::Int32MultiArray coordinates;
+  //<<<ROS initiation
+
+
+  //choose target object code
+  bool trackObjects = true;
+	bool useMorphOps = true;
+	caliMode = true;
+	//Matrix to store each frame of the webcam feed
+	Mat cameraFeed;
+	//matrix storage for HSV image
+	Mat HSV;
+	//matrix storage for binary threshold image
+	Mat threshold;
+	//x and y values for the location of the object
+	int x = 0, y = 0;
+	//video capture object to acquire webcam feed
+	VideoCapture capture;
+	//open capture object at location zero (default location for webcam)
+	capture.open(0); // +1 for webcam
+	//set height and width of capture frame
+	capture.set(CV_CAP_PROP_FRAME_WIDTH, FRAME_WIDTH);
+	capture.set(CV_CAP_PROP_FRAME_HEIGHT, FRAME_HEIGHT);
+	//must create a window before setting mouse callback
+	cv::namedWindow(windowName);
+	//set mouse callback function to be active on "Webcam Feed" window
+	//we pass the handle to our "frame" matrix so that we can draw a rectangle to it
+	//as the user clicks and drags the mouse
+	cv::setMouseCallback(windowName, clickDragRect, &cameraFeed);
+	//initiate mouse move and drag to false 
+	mouseDragging = false;
+	mouseMove = false;
+	rectangleSelected = false;
+
+	//start an infinite loop where webcam feed is copied to cameraFeed matrix
+	//all of our operations will be performed within this loop
+	while (true){
+		//store image to matrix
+		capture.read(cameraFeed);
+		//convert frame from BGR to HSV colorspace
+		cvtColor(cameraFeed, HSV, COLOR_BGR2HSV);
+		//set HSV values from user selected region
+		recordHSV_Values(cameraFeed, HSV);
+		//filter HSV image between values and store filtered image to
+		//threshold matrix
+		inRange(HSV, Scalar(H_MIN, S_MIN, V_MIN), Scalar(H_MAX, S_MAX, V_MAX), threshold);
+		//perform morphological operations on thresholded image to eliminate noise
+		//and emphasize the filtered object(s)
+		if (useMorphOps)
+			morphOps(threshold);
+		//pass in thresholded frame to our object tracking function
+		//this function will return the x and y coordinates of the
+		//filtered object
+		if (trackObjects)
+			trackFilteredObject(x, y, threshold, cameraFeed);
+
+		//show frames
+		if (caliMode == true){
+			//create slider bars for HSV filtering
+			create_Trackbars();
+			imshow(windowName1, HSV);
+			imshow(windowName2, threshold);
+		}
+		else{
+			destroyWindow(windowName1);
+			destroyWindow(windowName2);
+			destroyWindow(trackbarWindowName);
+		}
+		imshow(windowName, cameraFeed);
+
+    coordinates.data.resize(2); //resize the array to avoid Segmentation fault (core dumped)
+    //>>>Publish the x coordinate to ROS
+    //for loop to push data into the array
+    coordinates.data[0] = x;
+    coordinates.data[1] = y;
+
+    //cout<<"X: "<<coordinates.data[0]<<endl;
+    //cout<<"Y: "<<coordinates.data[1]<<endl;
+
+    //anounce that the array was published
+    ROS_INFO("Camera Coordinates published: x coordinate: %d, y coordinate: %d", coordinates.data[0], coordinates.data[1]);
+
+    chatter_pub.publish(coordinates);
+    ros::spinOnce();
+
+    loop_rate.sleep();
+    //<<<Publish the x coordinate to ROS
+
+
+		//delay 30ms so that screen can refresh.
+		//image will not appear without this waitKey() command
+		//also use waitKey command to capture keyboard input
+		if (waitKey(30) == 99) caliMode = !caliMode;//if user presses 'c', toggle calibration mode
+
+    if (waitKey(30) == 27){ //wait for 'esc' key press for 30ms. If 'esc' key is pressed, break loop
+      cout<<"esc key has been pressed by user, exiting and terminated program"<< endl;
+      exit(EXIT_FAILURE);;
+    }
+	}
   return 0;
 }
 //<<< int main
