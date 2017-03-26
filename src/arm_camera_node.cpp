@@ -560,7 +560,7 @@ int main(int argc, char **argv){//passing argc and argv is needed here to perfor
   ros::NodeHandle n;
 
   //ros::Publisher chatter_pub = n.advertise<std_msgs::Int32>("target_object_coordinates", 1000);
-  ros::Publisher chatter_pub = n.advertise<std_msgs::Int32MultiArray>("coordinates", 10);
+  ros::Publisher chatter_pub = n.advertise<std_msgs::Int32MultiArray>("objectCoordinates", 10);
   ros::Rate loop_rate(10);
 
   std_msgs::Int32MultiArray coordinates;

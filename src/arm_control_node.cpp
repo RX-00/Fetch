@@ -232,7 +232,7 @@ int main(int argc, char **argv){
   ros::NodeHandle n;
 
   //subscribers
-  ros::Subscriber sub_coordinates = n.subscribe("coordinates", 10, &coordinatesCallBack);
+  ros::Subscriber sub_coordinates = n.subscribe("objectCoordinates", 10, &coordinatesCallBack);
   ros::Subscriber sub_distance = n.subscribe("ultrasonic_distance", 10, &distanceCallBack);
 
   //publishers
@@ -257,7 +257,7 @@ int main(int argc, char **argv){
       posData.data.clear();
 
       for(int i = 0; i < 4; i++){
-        posData.data.push_back(rand() % 180);
+        //posData.data.push_back(rand() % 180);
         switch(i){
         case 1:
           posData.data.push_back(posBase);
