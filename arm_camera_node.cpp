@@ -217,13 +217,35 @@ void recordHSV_Values(cv::Mat frame, cv::Mat HSV_Frame){
 		rectangle(frame, initialClickPt, cv::Point(currentMousePt.x, currentMousePt.y), cv::Scalar(0, 255, 0), 1, 8, 0);
 	}
 
-
 }
 
 string intToString(int number){
 	std::stringstream ss;
 	ss << number;
 	return ss.str();
+}
+
+
+void drawCrosshairsRed(int x, int y, Mat &frame){
+
+	//'if' and 'else' statements to prevent
+	//memory errors from writing off the screen (ie. (-25,-25) is not within the window)
+
+	circle(frame, Point(x, y), 20, Scalar(0, 0, 255), 2);
+	if (y - 25 > 0)
+		line(frame, Point(x, y), Point(x, y - 25), Scalar(0, 0, 255), 2);
+	else line(frame, Point(x, y), Point(x, 0), Scalar(0, 0, 255), 2);
+	if (y + 25 < FRAME_HEIGHT)
+		line(frame, Point(x, y), Point(x, y + 25), Scalar(0, 0, 255), 2);
+	else line(frame, Point(x, y), Point(x, FRAME_HEIGHT), Scalar(0, 0, 255), 2);
+	if (x - 25 > 0)
+		line(frame, Point(x, y), Point(x - 25, y), Scalar(0, 0, 255), 2);
+	else line(frame, Point(x, y), Point(0, y), Scalar(0, 0, 255), 2);
+	if (x + 25 < FRAME_WIDTH)
+		line(frame, Point(x, y), Point(x + 25, y), Scalar(0, 0, 255), 2);
+	else line(frame, Point(x, y), Point(FRAME_WIDTH, y), Scalar(0, 0, 255), 2);
+
+	putText(frame, intToString(x) + "," + intToString(y), Point(x, y + 30), 1, 1, Scalar(0, 0, 255), 2);
 }
 
 
@@ -247,7 +269,6 @@ void drawCrosshairs(int x, int y, Mat &frame){
 	else line(frame, Point(x, y), Point(FRAME_WIDTH, y), Scalar(0, 255, 0), 2);
 
 	putText(frame, intToString(x) + "," + intToString(y), Point(x, y + 30), 1, 1, Scalar(0, 255, 0), 2);
-
 }
 
 
@@ -302,14 +323,26 @@ void trackFilteredObject(int &x, int &y, Mat threshold, Mat &cameraFeed){
 			}
 			//let user know you found an object
 			if (objectFound == true){
-				putText(cameraFeed, "Tracking Object", Point(0, 50), 2, 1, Scalar(0, 255, 0), 2);
+				putText(cameraFeed, "Target Object Found", Point(0, 50), 2, 1, Scalar(0, 255, 0), 2);
 				//draw object location on screen
 				drawCrosshairs(x, y, cameraFeed);
 				//draw largest contour
-				drawContours(cameraFeed, contours, largestIndex, Scalar(0, 255, 255), 2);
+				drawContours(cameraFeed, contours, largestIndex, Scalar(0, 0, 255), 2);
+        if(y > 270){
+          //This is the horizon line
+          line(cameraFeed, Point(0, 270), Point(640, 270), Scalar(0, 255, 0), 2);
+        }
+        if(y > 270 && (x > 160 && x < 480)){
+          //This is the left center line
+          line(cameraFeed, Point(160, 0), Point(160, 480), Scalar(0, 255, 0), 2);
+          //This is the right center line
+          line(cameraFeed, Point(480, 0), Point(480, 480), Scalar(0, 255, 0), 2);
+          putText(cameraFeed, "Target Object Locked", Point(0, 100), 2, 1, Scalar(0, 0, 255), 2);
+          drawCrosshairsRed(x, y, cameraFeed);
+        }
 			}
 		}
-		else putText(cameraFeed, "Error: too much noise, change filter", Point(0, 50), 1, 2, Scalar(0, 0, 255), 2);
+		else putText(cameraFeed, "Error: too much noise, change filter", Point(0, 50), 1, 2, Scalar(0, 255, 0), 2);
 	}
 }
 //User choose target object code<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
@@ -442,7 +475,7 @@ void find_target_object(int argc, char **argv){
 
     //for loop to push data into the array
     for(int i = 0; i < 2; i++){
-      coordinates.data.push_back(rand()%255);
+      coordinates.data.push_back(rand() % 255);
       coordinates.data[0] = LastX;
       coordinates.data[1] = LastY;
     }
@@ -487,6 +520,7 @@ void ROS_Publisher(int argc, char **argv){
   -once all copies of the returned publisher object are destroyed, the topic will be automatically unadvertised
   -this second parameter for advertise() is the size of the message queue used for publishing messages, it's the size of the buffer to keep before throwing away the rest
   */
+
   ros::Publisher chatter_pub = n.advertise<std_msgs::String>("target_object_coordinates", 1000);
 
   ros::Rate loop_rate(10);
@@ -526,7 +560,7 @@ int main(int argc, char **argv){//passing argc and argv is needed here to perfor
   ros::NodeHandle n;
 
   //ros::Publisher chatter_pub = n.advertise<std_msgs::Int32>("target_object_coordinates", 1000);
-  ros::Publisher chatter_pub = n.advertise<std_msgs::Int32MultiArray>("target_object_coordinates", 10);
+  ros::Publisher chatter_pub = n.advertise<std_msgs::Int32MultiArray>("coordinates", 10);
   ros::Rate loop_rate(10);
 
   std_msgs::Int32MultiArray coordinates;
@@ -575,6 +609,16 @@ int main(int argc, char **argv){//passing argc and argv is needed here to perfor
 		//filter HSV image between values and store filtered image to
 		//threshold matrix
 		inRange(HSV, Scalar(H_MIN, S_MIN, V_MIN), Scalar(H_MAX, S_MAX, V_MAX), threshold);
+
+
+    //This is the horizon line
+    line(cameraFeed, Point(0, 270), Point(640, 270), Scalar(0, 0, 255), 2);
+    //This is the left center line
+    line(cameraFeed, Point(160, 0), Point(160, 480), Scalar(0, 0, 255), 2);
+    //This is the right center line
+    line(cameraFeed, Point(480, 0), Point(480, 480), Scalar(0, 0, 255), 2);
+
+
 		//perform morphological operations on thresholded image to eliminate noise
 		//and emphasize the filtered object(s)
 		if (useMorphOps)
@@ -624,7 +668,7 @@ int main(int argc, char **argv){//passing argc and argv is needed here to perfor
 		if (waitKey(30) == 99) caliMode = !caliMode;//if user presses 'c', toggle calibration mode
 
     if (waitKey(30) == 27){ //wait for 'esc' key press for 30ms. If 'esc' key is pressed, break loop
-      cout<<"esc key has been pressed by user, exiting and terminated program"<< endl;
+      cout<<"esc key has been pressed by user, exiting and terminating program"<< endl;
       exit(EXIT_FAILURE);;
     }
 	}
