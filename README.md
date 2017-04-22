@@ -44,7 +44,9 @@ Hardware:
 
 -NTE966 12V 1A Voltage Regulator + 0.33μF and 0.1μF capacitors (for Xbox 360 Kinect sensor http://wiki.ros.org/kinect/Tutorials/Adding%20a%20Kinect%20to%20an%20iRobot%20Create)
 
--Tiva C Launchpad TM4C123G (for sensors and motors/motordriver)
+-Tiva C Launchpad TM4C123G (for sensors input)
+
+-Arduino Uno (for motor output)
 
 -2x 131:1 Metal Gearmotor 37Dx73L mm with 64 CPR Encoder
 
@@ -62,7 +64,7 @@ Hardware:
 
 -Turnigy 5000mAh 4S1P 14.8v 20C Hardcase Pack
 
--Arduino MEGA 2560
+-Arduino MEGA 2560 (for arm control)
 
 -Arduino Servo and Sensor Shield v5.0
 
