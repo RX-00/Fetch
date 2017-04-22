@@ -8,7 +8,7 @@ import syslog
 from std_msgs.msg import String
 from std_msgs.msg import Int32MultiArray
 
-port = '/dev/ttyACM1'
+port = '/dev/ttyACM2'
 
 arduino = serial.Serial(port, 9600, timeout = 1)
 
@@ -49,9 +49,9 @@ def callBack(data):
     for i in range(4):
         print data.data[i]
         if(i == 0): base = data.data[i]
-        if(i == 1): shoulder = data.data[i]
-        if(i == 2): elbow = data.data[i]
-        if(i == 3): claw = data.data[i]
+        else if(i == 1): shoulder = data.data[i]
+        else if(i == 2): elbow = data.data[i]
+        else if(i == 3): claw = data.data[i]
     sendData(base, shoulder, elbow, claw)
     rospy.loginfo("Sent Arduino Mega position data through serial port: " + port)
 
