@@ -21,6 +21,10 @@ INA | INB | DIAGA/ENA | DIAGB/ENB | OUTA | OUTB |         CS        | Operating 
 #include <Messenger.h>
 #include <limits.h>
 
+/**
+ * NOTE: SCL to PA6 and SDA to PA7
+ * PF0 to INT for configuring the pin as an interrupt
+ */
 
 //Messenger stuff>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 // Messenger Object
@@ -39,12 +43,12 @@ float secSinceUpdate = 0;
 
 //Motor stuff>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 // Motor pin definitions
-// Right Motor Pins
+// Left Motor Pins
 #define INA_2 5
 #define INB_2 6
 #define PWM_2 36
 
-// Left Motor Pins
+// Right Motor Pins
 #define INA_1 12
 #define INB_1 13
 #define PWM_1 35
@@ -172,7 +176,7 @@ void update_Motors(){
   move_Right_Motor(right_motor_speed);
   move_Left_Motor(left_motor_speed);
 
-  Serial.print("Motors: "); Serial.print("\t");
+  Serial.print("m"); Serial.print("\t");
   Serial.print(left_motor_speed); Serial.print("\t");
   Serial.print(right_motor_speed); Serial.print("\t");
   Serial.print("\n");
@@ -270,7 +274,7 @@ void update_Time(){
   lastUpdateMicroSec = currentMicroSec;
   secSinceUpdate = microSecSinceUpdate / 1000000.0;
 
-  Serial.print("Time: "); Serial.print("\t");
+  Serial.print("t"); Serial.print("\t");
   Serial.print(lastUpdateMicroSec); Serial.print("\t");
   Serial.print(secSinceUpdate); Serial.print("\n");
 }
@@ -354,7 +358,7 @@ void setup_Encoders(){
 }
 
 void update_Encoders(){
-  Serial.print("Encoder: ");
+  Serial.print("e");
   Serial.print("\t");
   Serial.print(Left_Encoder_Ticks);
   Serial.print("\t");
@@ -400,7 +404,7 @@ void update_Ultrasonic(){
   cm = MicrosecondsToCentimeters(duration); //convert time into distance
 
   //print through the serial port
-  Serial.print("Ultrasonic: "); Serial.print("\t");
+  Serial.print("u"); Serial.print("\t");
   Serial.print(cm); Serial.print("\n");
 }
 
@@ -513,7 +517,7 @@ void update_MPU6050_DMP(){
 
 void setup(){
   Serial.begin(9600);
-  Serial.println("Setting up motors and sensors...");
+  Serial.println("Setting up sensors...");
   setup_Reset();
   setup_Motors();
   setup_Encoders();
@@ -526,18 +530,9 @@ void setup(){
 }
 
 void loop(){
-  
   read_From_Serial();
   update_Time();
   update_Encoders();
   update_Ultrasonic();
-  //update_Motors();
   update_MPU6050_DMP();
-  
-
-  //TODO: FIX THE GODDAMN MOTORS
-  //move_Right_Motor(255);
-  //delay(1000);
-  //move_Left_Motor(255);
-  //delay(5000);
 }
